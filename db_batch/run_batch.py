@@ -283,6 +283,9 @@ def run_batch(models_root_dir, outputs_root_dir, make_output_subdirs=False, mode
         raise InvalidDBExePath("DB executable path '{}' is not valid.\n"
                                "Specify the correct path using 'db_path' kwarg.".format(db_pth))
 
+    if watch_files == "default":
+        watch_files = WATCH_SBEM if analysis_type == "sbem" else WATCH_EPLUS
+
     if analysis_type == "eplus" and "in.idf" not in watch_files and "eplusout.err" not in watch_files:
         raise IncorrectFilesRequest("Requested set of files is not applicable for eplus analysis!\n"
                                     "Request must contain at least 'in.idf' and 'eplusout.err' files.\n"
