@@ -336,7 +336,7 @@ def run_batch(models_root_dir, outputs_root_dir, make_output_subdirs=False, mode
         # are removed to guarantee that new files can be properly watched
         remove_files(watch_paths)
 
-        if i < start_index or i > (end_index if end_index else 9999999):
+        if i < (start_index if start_index else 1) or i > (end_index if end_index else 9999999):
             # non-default starting index has been requested
             # skip until the condition is met
             print("Skipping {}/{} - '{}'".format(i, len(model_paths), model_name))
