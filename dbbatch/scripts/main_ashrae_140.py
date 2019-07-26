@@ -1,4 +1,4 @@
-from db_batch.run_batch import run_batch, WATCH_EPLUS
+from dbbatch.run_batch import run_batch, WATCH_EPLUS
 import os
 
 if __name__ == "__main__":

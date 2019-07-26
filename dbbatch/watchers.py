@@ -1,7 +1,7 @@
 """ Set of watchers to monitor calculation progress. """
 
 from threading import Thread
-from db_batch.misc_os import list_dirs
+from dbbatch.misc_os import list_dirs
 import os
 import time
 

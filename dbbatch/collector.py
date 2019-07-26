@@ -1,5 +1,5 @@
 from threading import Thread
-from db_batch.misc_os import copy_files
+from dbbatch.misc_os import copy_files
 
 
 class Collector(Thread):

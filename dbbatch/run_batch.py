@@ -4,9 +4,9 @@ import os
 import time
 
 from queue import Queue
-from db_batch.misc_os import list_files, create_dir, split_file_name_ext, kill_process
-from db_batch.collector import Collector
-from db_batch.watchers import SbemWatcher, EplusWatcher
+from dbbatch.misc_os import list_files, create_dir, split_file_name_ext, kill_process
+from dbbatch.collector import Collector
+from dbbatch.watchers import SbemWatcher, EplusWatcher
 
 SBEM_VERSIONS = ["41e", "54a", "54b", "55h", "56a"]
 DB_PATH = "C:/Program Files (x86)/DesignBuilder/designbuilder.exe"

@@ -1,4 +1,4 @@
-from db_batch.run_batch import run_batch
+from dbbatch.run_batch import run_batch
 import os
 
 # CHANGE THIS TO A VALID PATH!

@@ -1,6 +1,6 @@
 import argparse
 import os
-from db_batch.run_batch import run_batch
+from dbbatch.run_batch import run_batch
 
 DB_PATH = "C:/Program Files (x86)/DesignBuilder/designbuilder.exe"
 JOB_SERVER_DIR = "C:/ProgramData/DesignBuilder/JobServer/Users/User"
