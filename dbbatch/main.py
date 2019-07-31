@@ -25,7 +25,7 @@ parser.add_argument("--nSubDirs", type=int, default=1, help="look for DB files n
 parser.add_argument("--simStartDate", type=int, nargs=2, help="force start date of the simulation, format DD MM")
 parser.add_argument("--simEndDate", type=int, nargs=2, help="force end date of the simulation, format DD MM")
 parser.add_argument("--outputSubDirs", action="store_true", help="create a results directory for each model")
-parser.add_argument("--modelNames", action="store_true", help="add model name to each output file")
+parser.add_argument("--noModelNames", action="store_false", help="do not add a model name to each output file")
 parser.add_argument("--originalNames", action="store_true", help="add file original name to an output file title")
 parser.add_argument("--useSimManager", action="store_true", help="force using 'Simulation Manager'")
 parser.add_argument("--report", action="store_true", help="write a simple batch summary report")
@@ -47,7 +47,7 @@ if __name__ == "__main__":
         "start_index": args.startIndex,
         "end_index": args.endIndex,
         "make_output_subdirs": args.outputSubDirs,
-        "include_model_name": args.modelNames,
+        "include_model_name": not args.noModelNames,
         "include_orig_name": args.originalNames,
         "write_report": args.report,
         "use_sim_manager": args.useSimManager,
