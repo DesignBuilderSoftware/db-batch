@@ -137,6 +137,7 @@ def kill_process(name):
     db = get_process(name)
 
     if db:
+        print("Killing DesignBuilder process!")
         db.terminate()
 
         gone, alive = psutil.wait_procs([db], timeout=3, callback=on_terminate)

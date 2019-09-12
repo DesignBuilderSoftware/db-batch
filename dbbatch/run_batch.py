@@ -102,18 +102,28 @@ def create_cmnd(analysis, sim_start_date, sim_end_date, use_sim_manager, attribu
     types = {
         "eplus": "miGSS",
         "sbem": "miGCalculate",
-        "dsm": "miGCalculate"
+        "dsm": "miGCalculate",  # not working
     }
 
-    try:
-        args.append(types[analysis])
+    if analysis == "none":
+        # this is used for cases when it's desired
+        # only to update bunch of models
+        pass
 
-    except KeyError:
-        raise KeyError("Incorrect analysis type: '{}'.".format(analysis))
+    else:
+        try:
+            args.append(types[analysis])
+
+        except KeyError:
+            raise KeyError("Incorrect analysis type: '{}'.".format(analysis))
 
     args.append("miTUpdate")
 
-    cmnd = "/process=" + ", ".join(args)
+    if len(args) == 1:
+        cmnd = "/process=" + args[0]
+    else:
+        cmnd = "/process=" + ", ".join(args)
+
     print(f"Running batch using '{cmnd}' command args. ")
 
     return cmnd

@@ -11,7 +11,8 @@ parser = argparse.ArgumentParser(prog="run_db_batch",
 
 parser.add_argument("modelsDir", help="directory containing models to be run (may be nested)")
 parser.add_argument("outputsDir", help="directory where results will be stored")
-parser.add_argument("--analysis", type=str, choices=["sbem", "eplus"], default="eplus", help="requested analysis type")
+parser.add_argument("--analysis", type=str, choices=["sbem", "eplus", "none"], default="eplus",
+                    help="requested analysis type, calculation is not triggered if set to 'none'")
 parser.add_argument("--dbPath", type=str, default=DB_PATH,
                     help=f"path to DesignBuilder executable (default: {DB_PATH})")
 parser.add_argument("--jobServerDir", type=str, default=JOB_SERVER_DIR,
@@ -25,7 +26,7 @@ parser.add_argument("--nSubDirs", type=int, default=1, help="look for DB files n
 parser.add_argument("--simStartDate", type=int, nargs=2, help="force start date of the simulation, format DD MM")
 parser.add_argument("--simEndDate", type=int, nargs=2, help="force end date of the simulation, format DD MM")
 parser.add_argument("--outputSubDirs", action="store_true", help="create a results directory for each model")
-parser.add_argument("--noModelNames", action="store_false", help="do not add a model name to each output file")
+parser.add_argument("--noModelNames", action="store_true", help="do not add a model name to each output file")
 parser.add_argument("--originalNames", action="store_true", help="add file original name to an output file title")
 parser.add_argument("--useSimManager", action="store_true", help="force using 'Simulation Manager'")
 parser.add_argument("--report", action="store_true", help="write a simple batch summary report")
