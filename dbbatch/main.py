@@ -20,6 +20,7 @@ parser.add_argument("--jobServerDir", type=str, default=JOB_SERVER_DIR,
 parser.add_argument("--dbAppDataDir", type=str, default=DB_DATA,
                     help=f"path to 'db app data' directory (default: {DB_DATA})")
 parser.add_argument("--timeout", type=int, default=300, help="timeout in secs for a single file (default: 300)")
+parser.add_argument("--noClose",  action="store_true", help="prevent db from closing after command")
 parser.add_argument("--startIndex", type=int, help="starting index of the batch run (default: 1)")
 parser.add_argument("--endIndex", type=int, help="last index of the batch run (default: -1)")
 parser.add_argument("--nSubDirs", type=int, default=1, help="look for DB files n levels deep (default: 1)")
@@ -53,6 +54,9 @@ if __name__ == "__main__":
         "write_report": args.report,
         "use_sim_manager": args.useSimManager,
         "change_attributes": args.changeAttr,
+        "sim_start_date": args.simStartDate,
+        "sim_end_date": args.simEndDate,
+        "no_close": args.noClose
     }
     str_args = f"\tmodels dir : {args.modelsDir}\n\toutputs dir : {args.outputsDir}\n"
     for k, v in kwargs.items():

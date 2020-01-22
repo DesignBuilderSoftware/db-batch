@@ -83,7 +83,8 @@ def remove_files(paths):
             print("Cannot remove file: '{}'\n\tAccess denied!".format(path))
 
 
-def create_cmnd(analysis, sim_start_date, sim_end_date, use_sim_manager, attributes):
+def create_cmnd(analysis, sim_start_date, sim_end_date,
+                use_sim_manager, attributes, no_close):
     """ Create a command string for automatic processing. """
     args = []
 
@@ -98,6 +99,9 @@ def create_cmnd(analysis, sim_start_date, sim_end_date, use_sim_manager, attribu
 
     if attributes:
         args.extend([f"ChangeAttributeValue {attr} {val}" for attr, val in attributes])
+
+    if no_close:
+        args.extend(["NoClose"])
 
     types = {
         "eplus": "miGSS",
@@ -226,7 +230,7 @@ def run_batch(models_root_dir, outputs_root_dir, make_output_subdirs=False, mode
               analysis_type="sbem", db_data_dir=DB_DATA, watch_files="default", db_pth=DB_PATH,
               job_server_dir=JOB_SERVER_DIR, timeout=TIMEOUT, start_index=1, end_index=None,
               write_report=True, include_model_name=True, include_orig_name=False, sim_start_date=None,
-              sim_end_date=None, use_sim_manager=False, change_attributes=None):
+              sim_end_date=None, use_sim_manager=False, change_attributes=None, no_close=False):
     """
     This is a main function to run DesignBuilder files as a 'batch'.
 
@@ -278,6 +282,8 @@ def run_batch(models_root_dir, outputs_root_dir, make_output_subdirs=False, mode
         Force simulation manager.
     change_attributes : list of tuples, default None
         Overwrite given attributes, input in tuple pairs (attr, val).
+    no_close : bool
+        Prevent DB from closing after executing command.
 
     """
     t1000 = kill_process("DesignBuilder.exe")
@@ -338,7 +344,8 @@ def run_batch(models_root_dir, outputs_root_dir, make_output_subdirs=False, mode
 
     watch_paths = [os.path.join(db_data_dir, loc, file) for file in watch_files for loc in locs]
 
-    cmnd = create_cmnd(analysis_type, sim_start_date, sim_end_date, use_sim_manager, change_attributes)
+    cmnd = create_cmnd(analysis_type, sim_start_date, sim_end_date,
+                       use_sim_manager, change_attributes, no_close)
 
     for i, path in enumerate(model_paths, start=1):
         model_name = split_file_name_ext(path)[0]
