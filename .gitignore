@@ -2,7 +2,8 @@
 __pycache__
 dist
 venv
+.venv
 build
 *.spec
 build.bat
-scripts/
+/dbbatch/scripts/

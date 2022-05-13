@@ -13,6 +13,7 @@ flake8 = "^4.0.1"
 pre-commit = "^2.15.0"
 isort = "^5.10.1"
 pylint = "^2.11.1"
+psutil = "^5.9.0"
 
 [tool.black]
 line-length = 88
