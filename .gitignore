@@ -5,3 +5,4 @@ venv
 build
 *.spec
 build.bat
+scripts/
