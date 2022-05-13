@@ -1,4 +1,5 @@
 from threading import Thread
+
 from dbbatch.misc_os import copy_files
 
 
@@ -29,8 +30,14 @@ class Collector(Thread):
 
     """
 
-    def __init__(self, queue, output_root_dir, make_subdirs=False, include_orig_name=False,
-                 include_model_name=True):
+    def __init__(
+        self,
+        queue,
+        output_root_dir,
+        make_subdirs=False,
+        include_orig_name=False,
+        include_model_name=True,
+    ):
         super().__init__()
         self._running = False
         self.queue = queue
@@ -40,11 +47,11 @@ class Collector(Thread):
         self.include_orig_name = include_orig_name
 
     def stop(self):
-        """ Stop monitoring. """
+        """Stop monitoring."""
         self.queue.put("DONE")
 
     def run(self):
-        """ Wait for queue updates and copy files. """
+        """Wait for queue updates and copy files."""
         self._running = True
 
         while self._running:
@@ -54,5 +61,11 @@ class Collector(Thread):
                 break
 
             srcs, model_name = res
-            copy_files(srcs, self.output_root_dir, model_name=model_name, include_model_name=self.include_model_name,
-                       make_subdirs=self.make_subdirs, include_orig_name=self.include_orig_name)
+            copy_files(
+                srcs,
+                self.output_root_dir,
+                model_name=model_name,
+                include_model_name=self.include_model_name,
+                make_subdirs=self.make_subdirs,
+                include_orig_name=self.include_orig_name,
+            )

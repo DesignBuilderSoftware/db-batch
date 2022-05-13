@@ -1,9 +1,10 @@
 """ Set of watchers to monitor calculation progress. """
 
-from threading import Thread
-from dbbatch.misc_os import list_dirs
 import os
 import time
+from threading import Thread
+
+from dbbatch.misc_os import list_dirs
 
 
 class Watcher(Thread):
@@ -42,30 +43,26 @@ class Watcher(Thread):
         self._running = False
 
     def stop(self):
-        """ Stop monitoring. """
+        """Stop monitoring."""
         self._running = False
 
     def run(self):
-        """ Monitor given calculation files. """
+        """Monitor given calculation files."""
         self._running = True
         files = set()
-
         while self._running:
             for path in self.paths:
                 try:
                     with open(path, "r"):
                         files.add(path)
-
                 except FileNotFoundError:
                     pass
-
             time.sleep(1)
-
         self.queue.put((files, self.model_name))
 
 
 class SbemWatcher(Watcher):
-    """ A watcher thread to monitor sbem outputs processing. """
+    """A watcher thread to monitor sbem outputs processing."""
 
     def __init__(self, model_name, paths, queue):
         super().__init__(model_name, paths, queue)
@@ -105,14 +102,16 @@ class EplusWatcher(Watcher):
 
     """
 
-    def __init__(self, model_name, paths, queue, job_server_dir, report_file, report_dct):
+    def __init__(
+        self, model_name, paths, queue, job_server_dir, report_file, report_dct
+    ):
         super().__init__(model_name, paths, queue)
         self.job_server_dir = job_server_dir
         self.report_file = report_file
         self.report_dct = report_dct
 
     def run(self):
-        """ Monitor EnergyPlus simulation files. """
+        """Monitor EnergyPlus simulation files."""
         self._running = True
 
         files_dct = {os.path.basename(pth): pth for pth in self.paths}
@@ -137,7 +136,9 @@ class EplusWatcher(Watcher):
                     msg = f"Model '{self.model_name}' - EnergyPlus failed!"
                     f.write(msg + "\n")
 
-            files = list(filter(lambda x: ("eplusout.err" in x or "in.idf" in x), files))
+            files = list(
+                filter(lambda x: ("eplusout.err" in x or "in.idf" in x), files)
+            )
 
         else:
             self.report_dct["successful"].append(self.model_name)
@@ -145,7 +146,7 @@ class EplusWatcher(Watcher):
         self.queue.put((files, self.model_name))
 
     def read_err_file(self, err_pth):
-        """ Read the '.err' file to find out a simulation status."""
+        """Read the '.err' file to find out a simulation status."""
         while True:
 
             if not self._running:
@@ -166,11 +167,17 @@ class EplusWatcher(Watcher):
 
                     for line in lines:
                         if "EnergyPlus Completed Successfully" in line:
-                            print(f"\tModel: '{self.model_name}' - EnergyPlus Completed Successfully")
+                            print(
+                                f"\tModel: '{self.model_name}' - "
+                                f"EnergyPlus Completed Successfully"
+                            )
                             return True
 
                         elif "EnergyPlus Terminated--Fatal Error Detected" in line:
-                            print(f"\tModel: '{self.model_name}' - EnergyPlus Terminated--Fatal Error Detected")
+                            print(
+                                f"\tModel: '{self.model_name}' - "
+                                f"EnergyPlus Terminated--Fatal Error Detected"
+                            )
                             return False
 
                     if not self._running:
@@ -181,7 +188,7 @@ class EplusWatcher(Watcher):
                     time.sleep(0.1)
 
     def check_simulation_method(self, files_dct):
-        """ Find simulation method (SM or Standard)"""
+        """Find simulation method (SM or Standard)"""
         in_pth = files_dct["in.idf"]
         err_pth = files_dct["eplusout.err"]
 

@@ -6,14 +6,13 @@ compare outputs between different versions.
 
 """
 
-from collections import defaultdict
-from functools import partial
-from collections import namedtuple
-import pandas as pd
-import os
 import json
-from typing import Union, List
-from pathlib import Path
+import os
+from collections import defaultdict, namedtuple
+from functools import partial
+from typing import List, Union
+
+import pandas as pd
 
 SbemRequest = namedtuple("SbemRequest", "parent_obj child_obj attributes")
 
@@ -104,12 +103,12 @@ class ModelEpcInpFile:
 
     @property
     def main_objects(self):
-        """ Get a list of all top level objects. """
+        """Get a list of all top level objects."""
         return list(self.content.keys())
 
     @property
     def all_objects(self):
-        """ Get a list of all objects (main + child). """
+        """Get a list of all objects (main + child)."""
         all_objects = {}
         for k, v in self.content.items():
             all_objects[k] = []
@@ -118,15 +117,17 @@ class ModelEpcInpFile:
         return all_objects
 
     def _get_attr(self, obj, attr):
-        """ Get attribute value. """
+        """Get attribute value."""
         try:
             return obj[attr]
         except KeyError:
-            print("Attribute: '{}' was not found.\n"
-                  "Available options are:\n\t{}".format(attr, "\n\t".join(obj.keys())))
+            print(
+                "Attribute: '{}' was not found.\n"
+                "Available options are:\n\t{}".format(attr, "\n\t".join(obj.keys()))
+            )
 
     def get_output_vals(self, par_name, child_name, attr_lst):
-        """ Return a dictionary {attr: val, ...} for a given object. """
+        """Return a dictionary {attr: val, ...} for a given object."""
         obj = self._get_child_obj(par_name, child_name)
         attrs = {}
 
@@ -144,34 +145,38 @@ class ModelEpcInpFile:
         return attrs
 
     def _get_obj(self, obj, parent_obj):
-        """ Fetch object content. """
+        """Fetch object content."""
         try:
             return parent_obj[obj]
 
         except KeyError:
-            print("Object: '{}' was not found.\n"
-                  "Available options are:\n\t{}".format(obj, "\n\t".join(parent_obj.keys())))
+            print(
+                "Object: '{}' was not found.\n"
+                "Available options are:\n\t{}".format(
+                    obj, "\n\t".join(parent_obj.keys())
+                )
+            )
 
     def _get_main_obj(self, obj_name):
-        """ Fetch main object content. """
+        """Fetch main object content."""
         return self._get_obj(obj_name, self.content)
 
     def _get_child_obj(self, par_obj, child_name):
-        """ Fetch child object content. """
+        """Fetch child object content."""
         par_cont = self._get_main_obj(par_obj)
         return self._get_obj(child_name, par_cont)
 
     def print_all_content(self):
-        """ Print all data. """
+        """Print all data."""
         print(json.dumps(self.content, indent=2))
 
     def print_all_main_objects(self):
-        """ Print only top level object names. """
+        """Print only top level object names."""
         objects_str = "\n\t".join(self.main_objects)
         print("Available objects:\n\t{}".format(objects_str))
 
     def print_all_objects(self):
-        """ Print all objects (main + child). """
+        """Print all objects (main + child)."""
         objects_str = ""
 
         for k, v in self.all_objects.items():
@@ -180,24 +185,28 @@ class ModelEpcInpFile:
         print("Available objects:\n{}".format(objects_str))
 
     def print_object_content(self, obj):
-        """ Print attributes for """
+        """Print attributes for"""
         try:
             return self.content[obj]
 
         except KeyError:
-            print("Object: '{}' was not found.\n"
-                  "Available objects are:\n\t{}".format(obj, "\n\t".join(self.main_objects)))
+            print(
+                "Object: '{}' was not found.\n"
+                "Available objects are:\n\t{}".format(
+                    obj, "\n\t".join(self.main_objects)
+                )
+            )
 
     @staticmethod
     def process_line(line):
-        """ Clean up the given data. """
-        line = line.replace("\"", "")
+        """Clean up the given data."""
+        line = line.replace('"', "")
         line = line.strip()
         name, obj = line.split("=")
         return name.strip(), obj.strip()
 
     def process_object(self, file, objects, name, obj, building):
-        """ Populate object data. """
+        """Populate object data."""
         b_obj = str(obj)
 
         while True:
@@ -223,7 +232,7 @@ class ModelEpcInpFile:
         return building
 
     def process_file(self, file):
-        """ Process .inp file. """
+        """Process .inp file."""
         objects_dct = defaultdict(partial(defaultdict, dict))
         building = ""
 
@@ -241,14 +250,14 @@ class ModelEpcInpFile:
             if line[0] == "$":
                 continue
 
-            if line[0] == "\"":
+            if line[0] == '"':
                 name, obj = self.process_line(line)
                 building = self.process_object(file, objects_dct, name, obj, building)
 
         return objects_dct
 
     def read_model_epc(self, path):
-        """ Open the .inp file and trigger processing. """
+        """Open the .inp file and trigger processing."""
         try:
             with open(path) as input_file:
                 return self.process_file(input_file)

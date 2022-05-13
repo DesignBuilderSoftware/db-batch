@@ -1,11 +1,11 @@
 import os
-import psutil
-
 from shutil import copyfile
+
+import psutil
 
 
 def list_dirs(pth):
-    """ Return sub-directory paths. """
+    """Return sub-directory paths."""
     content = os.listdir(pth)
     dirs = []
     for name in content:
@@ -16,7 +16,7 @@ def list_dirs(pth):
 
 
 def list_files(root, depth=1, ext="dsb"):
-    """ Return a list of all files with specified extension. """
+    """Return a list of all files with specified extension."""
     files_lst = []
 
     if not os.path.isdir(root):
@@ -27,7 +27,7 @@ def list_files(root, depth=1, ext="dsb"):
 
 
 def _walk(root, files, depth=1, ext=None):
-    """ Walk directories to pick up files with specified extension. """
+    """Walk directories to pick up files with specified extension."""
     dirs = []
     for name in os.listdir(root):
         pth = os.path.join(root, name)
@@ -42,11 +42,24 @@ def _walk(root, files, depth=1, ext=None):
             _walk(pth, files, depth=depth - 1, ext=ext)
 
 
-def copy_files(srcs, dest, model_name=None, include_model_name=True, make_subdirs=False, include_orig_name=False):
-    """ Copy multiple files specified into a specific location. """
+def copy_files(
+    srcs,
+    dest,
+    model_name=None,
+    include_model_name=True,
+    make_subdirs=False,
+    include_orig_name=False,
+):
+    """Copy multiple files specified into a specific location."""
     for src in srcs:
-        copy_file(src, dest, model_name=model_name, include_model_name=include_model_name,
-                  make_subdirs=make_subdirs, include_orig_name=include_orig_name)
+        copy_file(
+            src,
+            dest,
+            model_name=model_name,
+            include_model_name=include_model_name,
+            make_subdirs=make_subdirs,
+            include_orig_name=include_orig_name,
+        )
 
 
 def file_name(pth):
@@ -69,14 +82,21 @@ def split_file_name_ext(pth):
 
 
 def create_dir(dir_pth):
-    """ Create directory for the specified dir path. """
+    """Create directory for the specified dir path."""
     try:
         os.makedirs(dir_pth)
     except OSError:
         pass
 
 
-def copy_file(src, dest, model_name=None, include_model_name=True, make_subdirs=False, include_orig_name=False):
+def copy_file(
+    src,
+    dest,
+    model_name=None,
+    include_model_name=True,
+    make_subdirs=False,
+    include_orig_name=False,
+):
     """
     Copy file.
 
@@ -121,19 +141,19 @@ def copy_file(src, dest, model_name=None, include_model_name=True, make_subdirs=
 
 
 def get_process(name):
-    """ Get process by name. """
+    """Get process by name."""
     for p in psutil.process_iter():
         if p.name() == name:
             return p
 
 
 def on_terminate(proc):
-    """ Report status. """
+    """Report status."""
     print("process {} terminated with exit code {}".format(proc, proc.returncode))
 
 
 def kill_process(name):
-    """ Terminate DesignBuilder forcefully. """
+    """Terminate DesignBuilder forcefully."""
     db = get_process(name)
 
     if db:

@@ -1,17 +1,17 @@
+import os
 import subprocess
 import threading
-import os
 import time
-
 from queue import Queue
-from dbbatch.misc_os import list_files, create_dir, split_file_name_ext, kill_process
+
 from dbbatch.collector import Collector
-from dbbatch.watchers import SbemWatcher, EplusWatcher
+from dbbatch.misc_os import create_dir, kill_process, list_files, split_file_name_ext
+from dbbatch.watchers import EplusWatcher, SbemWatcher
 
 SBEM_VERSIONS = ["41e", "54a", "54b", "55h", "56a"]
 DB_PATH = "C:/Program Files (x86)/DesignBuilder/designbuilder.exe"
 TIMEOUT = 600
-DB_DATA = os.path.join(os.getenv('LOCALAPPDATA'), "DesignBuilder")
+DB_DATA = os.path.join(os.getenv("LOCALAPPDATA"), "DesignBuilder")
 JOB_SERVER_DIR = "C:/ProgramData/DesignBuilder/JobServer/Users/User"
 
 WATCH_SBEM = (
@@ -34,32 +34,27 @@ WATCH_EPLUS = (
 
 
 class NoDsbFileFound(Exception):
-    """ Exception is raised when there isn't any .dsb file found. """
-    pass
+    """Exception is raised when there isn't any .dsb file found."""
 
 
 class IncorrectAnalysisType(Exception):
-    """ Exception is raised when the analysis type is not applicable. """
-    pass
+    """Exception is raised when the analysis type is not applicable."""
 
 
 class IncorrectFilesRequest(Exception):
-    """ Exception is raised when requested files are not applicable. """
-    pass
+    """Exception is raised when requested files are not applicable."""
 
 
 class InvalidStartingIndex(Exception):
-    """ Exception is raised when requested starting index is greater then number of models. """
-    pass
+    """Exception is raised when requested starting index is greater than n of models."""
 
 
 class InvalidDBExePath(Exception):
-    """ Exception is raised when DB exe path is not valid. """
-    pass
+    """Exception is raised when DB exe path is not valid."""
 
 
 def get_loc(analysis):
-    """ Get results subdirectory for the given analysis. """
+    """Get results subdirectory for the given analysis."""
     if analysis.lower() == "eplus":
         return ["energyplus"]
 
@@ -67,12 +62,14 @@ def get_loc(analysis):
         return SBEM_VERSIONS
 
     else:
-        raise IncorrectAnalysisType("Incorrect analysis type: '{}'\n"
-                                    "This can be: {}, {}.".format(analysis, "eplus", "sbem"))
+        raise IncorrectAnalysisType(
+            "Incorrect analysis type: '{}'\n"
+            "This can be: {}, {}.".format(analysis, "eplus", "sbem")
+        )
 
 
 def remove_files(paths):
-    """ Delete files for given paths. """
+    """Delete files for given paths."""
     for path in paths:
         try:
             os.remove(path)
@@ -83,9 +80,10 @@ def remove_files(paths):
             print("Cannot remove file: '{}'\n\tAccess denied!".format(path))
 
 
-def create_cmnd(analysis, sim_start_date, sim_end_date,
-                use_sim_manager, attributes, no_close):
-    """ Create a command string for automatic processing. """
+def create_cmnd(
+    analysis, sim_start_date, sim_end_date, use_sim_manager, attributes, no_close
+):
+    """Create a command string for automatic processing."""
     args = []
 
     if use_sim_manager:
@@ -134,7 +132,7 @@ def create_cmnd(analysis, sim_start_date, sim_end_date,
 
 
 def run_subprocess(file, cmd, db_pth=DB_PATH, timeout=TIMEOUT):
-    """ Run DesignBuilder file. """
+    """Run DesignBuilder file."""
     cmnd = f"{file} {cmd}"  # add file path to the command
 
     try:
@@ -154,11 +152,7 @@ def watcher(analysis):
     -----
     DSM is not supported at the moment!
     """
-    types = {
-        "sbem": SbemWatcher,
-        "eplus": EplusWatcher,
-        "dsm": None
-    }
+    types = {"sbem": SbemWatcher, "eplus": EplusWatcher, "dsm": None}
 
     try:
         watcher = types[analysis]
@@ -180,11 +174,7 @@ def pick_up_files(analysis_type):
     -----
     DSM is not supported at the moment!
     """
-    data = {
-        "sbem": WATCH_SBEM,
-        "eplus": WATCH_EPLUS,
-        "dsm": None
-    }
+    data = {"sbem": WATCH_SBEM, "eplus": WATCH_EPLUS, "dsm": None}
 
     try:
         files = data[analysis_type]
@@ -199,19 +189,23 @@ def pick_up_files(analysis_type):
 
 
 def init_report(analysis_type, outputs_root_dir, num_models):
-    """ Initialize output report file. """
+    """Initialize output report file."""
     str_tme = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime(time.time()))
     name = "summary_{}_{}.txt".format(analysis_type, str_tme)
     report_file = os.path.join(outputs_root_dir, name)
 
     with open(report_file, "w") as f:
-        f.write("Running '{}' analysis.\n\tNumber of files: '{}'.\n".format(analysis_type, num_models))
+        f.write(
+            "Running '{}' analysis.\n\tNumber of files: '{}'.\n".format(
+                analysis_type, num_models
+            )
+        )
 
     return report_file
 
 
 def finish_report(report_file, report_dct):
-    """ Summarize batch run analysis. """
+    """Summarize batch run analysis."""
     lines = [
         "\n{}".format("*" * 50),
         "\nSummary:",
@@ -219,18 +213,35 @@ def finish_report(report_file, report_dct):
         "\n\tTimeout expired: '{}' models.".format(len(report_dct["expired"])),
         "\n\tFailed: '{}' models.".format(len(report_dct["failed"])),
         "\n\tSuccessful: '{}' models.".format(len(report_dct["successful"])),
-        "\n{}".format("*" * 50)
+        "\n{}".format("*" * 50),
     ]
     print("".join(lines))
     with open(report_file, "a") as f:
         f.writelines(lines)
 
 
-def run_batch(models_root_dir, outputs_root_dir, make_output_subdirs=False, models_dirs_depth=1,
-              analysis_type="sbem", db_data_dir=DB_DATA, watch_files="default", db_pth=DB_PATH,
-              job_server_dir=JOB_SERVER_DIR, timeout=TIMEOUT, start_index=1, end_index=None,
-              write_report=True, include_model_name=True, include_orig_name=False, sim_start_date=None,
-              sim_end_date=None, use_sim_manager=False, change_attributes=None, no_close=False):
+def run_batch(
+    models_root_dir,
+    outputs_root_dir,
+    make_output_subdirs=False,
+    models_dirs_depth=1,
+    analysis_type="sbem",
+    db_data_dir=DB_DATA,
+    watch_files="default",
+    db_pth=DB_PATH,
+    job_server_dir=JOB_SERVER_DIR,
+    timeout=TIMEOUT,
+    start_index=1,
+    end_index=None,
+    write_report=True,
+    include_model_name=True,
+    include_orig_name=False,
+    sim_start_date=None,
+    sim_end_date=None,
+    use_sim_manager=False,
+    change_attributes=None,
+    no_close=False,
+):
     """
     This is a main function to run DesignBuilder files as a 'batch'.
 
@@ -286,7 +297,7 @@ def run_batch(models_root_dir, outputs_root_dir, make_output_subdirs=False, mode
         Prevent DB from closing after executing command.
 
     """
-    t1000 = kill_process("DesignBuilder.exe")
+    kill_process("DesignBuilder.exe")
 
     # get all the models which will be run in batch
     model_paths = list_files(models_root_dir, depth=models_dirs_depth)
@@ -296,39 +307,51 @@ def run_batch(models_root_dir, outputs_root_dir, make_output_subdirs=False, mode
         raise NoDsbFileFound("No .dsb model was found in '{}'.".format(models_root_dir))
 
     if not os.path.isfile(db_pth):
-        raise InvalidDBExePath("DB executable path '{}' is not valid.\n"
-                               "Specify the correct path using 'db_path' kwarg.".format(db_pth))
+        raise InvalidDBExePath(
+            "DB executable path '{}' is not valid.\n"
+            "Specify the correct path using 'db_path' kwarg.".format(db_pth)
+        )
 
     if watch_files == "default":
         watch_files = WATCH_SBEM if analysis_type == "sbem" else WATCH_EPLUS
 
-    if analysis_type == "eplus" and "in.idf" not in watch_files and "eplusout.err" not in watch_files:
-        raise IncorrectFilesRequest("Requested set of files is not applicable for eplus analysis!\n"
-                                    "Request must contain at least 'in.idf' and 'eplusout.err' files.\n"
-                                    "(Files are specified in 'watch_files' kwarg.)")
+    if (
+        analysis_type == "eplus"
+        and "in.idf" not in watch_files
+        and "eplusout.err" not in watch_files
+    ):
+        raise IncorrectFilesRequest(
+            "Requested set of files is not applicable for eplus analysis!\n"
+            "Request must contain at least 'in.idf' and 'eplusout.err' files.\n"
+            "(Files are specified in 'watch_files' kwarg.)"
+        )
 
     start_index = 1 if not start_index else start_index
     if start_index > len(model_paths):
-        raise InvalidStartingIndex("Chosen start index '{}' is higher than actual "
-                                   "number of models: '{}'.".format(start_index, len(model_paths)))
+        raise InvalidStartingIndex(
+            "Chosen start index '{}' is higher than actual "
+            "number of models: '{}'.".format(start_index, len(model_paths))
+        )
 
     # create a queue which will be used to pass
     # the data between watchers and collector thread
     queue = Queue()
 
     # run a collector thread which handles storing of specified output files
-    collector = Collector(queue, outputs_root_dir, make_subdirs=make_output_subdirs,
-                          include_orig_name=include_orig_name, include_model_name=include_model_name)
+    collector = Collector(
+        queue,
+        outputs_root_dir,
+        make_subdirs=make_output_subdirs,
+        include_orig_name=include_orig_name,
+        include_model_name=include_model_name,
+    )
     collector.start()
 
     # create directory to store outputs
     create_dir(outputs_root_dir)
 
     # initialize a report dictionary
-    report_dct = {"skipped": [],
-                  "expired": [],
-                  "failed": [],
-                  "successful": []}
+    report_dct = {"skipped": [], "expired": [], "failed": [], "successful": []}
 
     # initialize a report file if requested
     report_file = ""
@@ -342,10 +365,18 @@ def run_batch(models_root_dir, outputs_root_dir, make_output_subdirs=False, mode
     if watch_files == "default":
         watch_files = pick_up_files(analysis_type)
 
-    watch_paths = [os.path.join(db_data_dir, loc, file) for file in watch_files for loc in locs]
+    watch_paths = [
+        os.path.join(db_data_dir, loc, file) for file in watch_files for loc in locs
+    ]
 
-    cmnd = create_cmnd(analysis_type, sim_start_date, sim_end_date,
-                       use_sim_manager, change_attributes, no_close)
+    cmnd = create_cmnd(
+        analysis_type,
+        sim_start_date,
+        sim_end_date,
+        use_sim_manager,
+        change_attributes,
+        no_close,
+    )
 
     for i, path in enumerate(model_paths, start=1):
         model_name = split_file_name_ext(path)[0]
