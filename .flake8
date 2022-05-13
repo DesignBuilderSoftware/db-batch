@@ -1,0 +1,13 @@
+[flake8]
+ignore = R1725, E203, W503
+max-line-length = 88
+exclude =
+    .git,
+    .venv,
+    __pycache__,
+    __init__.py,
+    build,
+    dist
+max-complexity = 10
+per-file-ignores =
+    dbbatch/run_batch.py:C901

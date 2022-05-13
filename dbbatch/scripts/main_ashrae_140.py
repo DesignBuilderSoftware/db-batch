@@ -1,5 +1,6 @@
-from dbbatch.run_batch import run_batch, WATCH_EPLUS
 import os
+
+from dbbatch.run_batch import WATCH_EPLUS, run_batch
 
 if __name__ == "__main__":
     # CHANGE THIS TO A VALID PATH!
@@ -7,13 +8,27 @@ if __name__ == "__main__":
 
     models = os.path.join(root, "FABRIC", "TestFiles")
     outputs = os.path.join(root, "FABRIC", "Outputs")
-    run_batch(models, outputs, analysis_type="eplus", watch_files=WATCH_EPLUS,
-              make_output_subdirs=True, models_dirs_depth=2, timeout=300)
+    run_batch(
+        models,
+        outputs,
+        analysis_type="eplus",
+        watch_files=WATCH_EPLUS,
+        make_output_subdirs=True,
+        models_dirs_depth=2,
+        timeout=300,
+    )
 
     models = os.path.join(root, "HVAC", "HE100_230", "TestFiles")
     outputs = os.path.join(root, "HVAC", "HE100_230", "Outputs")
-    run_batch(models, outputs, analysis_type="eplus", watch_files=WATCH_EPLUS,
-              make_output_subdirs=True, models_dirs_depth=2, timeout=300)
+    run_batch(
+        models,
+        outputs,
+        analysis_type="eplus",
+        watch_files=WATCH_EPLUS,
+        make_output_subdirs=True,
+        models_dirs_depth=2,
+        timeout=300,
+    )
 
     # models = os.path.join(root, "HVAC", "AE101_445", "TestFiles")
     # outputs = os.path.join(root, "HVAC", "AE101_445", "Outputs")
