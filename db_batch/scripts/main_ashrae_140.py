@@ -1,10 +1,10 @@
 import os
 
-from dbbatch.run_batch import WATCH_EPLUS, run_batch
+from db_batch.run_batch import WATCH_EPLUS, run_batch
 
 if __name__ == "__main__":
     # CHANGE THIS TO A VALID PATH!
-    root = ""
+    root = r"D:\DesignBuilder\ASHRAE 140\ASHRAE 140 2020 730045"
 
     models = os.path.join(root, "FABRIC", "TestFiles")
     outputs = os.path.join(root, "FABRIC", "Outputs")
@@ -16,6 +16,7 @@ if __name__ == "__main__":
         make_output_subdirs=True,
         models_dirs_depth=2,
         timeout=300,
+        use_sim_manager=True,
     )
 
     models = os.path.join(root, "HVAC", "HE100_230", "TestFiles")
@@ -28,6 +29,7 @@ if __name__ == "__main__":
         make_output_subdirs=True,
         models_dirs_depth=2,
         timeout=300,
+        use_sim_manager=True,
     )
 
     models = os.path.join(root, "HVAC", "AE101_445", "TestFiles")
@@ -40,6 +42,7 @@ if __name__ == "__main__":
         make_output_subdirs=True,
         models_dirs_depth=2,
         timeout=300,
+        use_sim_manager=False,
     )
 
     models = os.path.join(root, "HVAC", "CE100_200", "TestFiles")
@@ -52,6 +55,7 @@ if __name__ == "__main__":
         make_output_subdirs=True,
         models_dirs_depth=2,
         timeout=300,
+        use_sim_manager=False,
     )
 
     models = os.path.join(root, "HVAC", "CE300_545", "TestFiles")
@@ -64,4 +68,5 @@ if __name__ == "__main__":
         make_output_subdirs=True,
         models_dirs_depth=2,
         timeout=300,
+        use_sim_manager=False,
     )

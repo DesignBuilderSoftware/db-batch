@@ -1,6 +1,6 @@
 import os
 
-from dbbatch.run_batch import run_batch
+from db_batch.run_batch import run_batch
 
 # CHANGE THIS TO A VALID PATH!
 root = r"C:\Users\vojtechp1\Desktop\New test cases\SBEM"

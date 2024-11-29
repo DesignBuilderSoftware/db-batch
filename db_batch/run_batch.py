@@ -4,9 +4,15 @@ import threading
 import time
 from queue import Queue
 
-from dbbatch.collector import Collector
-from dbbatch.misc_os import create_dir, kill_process, list_files, split_file_name_ext
-from dbbatch.watchers import EplusWatcher, SbemWatcher
+from db_batch.collector import Collector
+from db_batch.misc_os import (
+    create_dir,
+    kill_process,
+    list_files,
+    split_file_name_ext,
+    to_absolute,
+)
+from db_batch.watchers import EplusWatcher, SbemWatcher
 
 SBEM_VERSIONS = ["41e", "54a", "54b", "55h", "56a"]
 DB_PATH = "C:/Program Files (x86)/DesignBuilder/designbuilder.exe"
@@ -220,7 +226,7 @@ def finish_report(report_file, report_dct):
         f.writelines(lines)
 
 
-def run_batch(
+def run_batch(  # noqa: C901
     models_root_dir,
     outputs_root_dir,
     make_output_subdirs=False,
@@ -325,6 +331,9 @@ def run_batch(
             "Request must contain at least 'in.idf' and 'eplusout.err' files.\n"
             "(Files are specified in 'watch_files' kwarg.)"
         )
+
+    # make sure that paths are absolute
+    model_paths = to_absolute(model_paths)
 
     start_index = 1 if not start_index else start_index
     if start_index > len(model_paths):
