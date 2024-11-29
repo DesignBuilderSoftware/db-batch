@@ -1,6 +1,6 @@
 from threading import Thread
 
-from dbbatch.misc_os import copy_files
+from db_batch.misc_os import copy_files
 
 
 class Collector(Thread):

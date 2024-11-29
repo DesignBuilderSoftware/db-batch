@@ -1,8 +1,8 @@
 import shutil
 from pathlib import Path
 
-from dbbatch.misc_os import list_files
-from dbbatch.reader.sbem_reader import SbemRequest, get_results
+from db_batch.misc_os import list_files
+from db_batch.reader.sbem_reader import SbemRequest, get_results
 
 ROOT = Path(r"C:\Users\vojtechp1\Desktop\Testing\SBEM\Ireland - 6.1.7.001")
 if __name__ == "__main__":

@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from shutil import copyfile
 
 import psutil
@@ -24,6 +25,11 @@ def list_files(root, depth=1, ext="dsb"):
 
     _walk(root, files_lst, depth=depth, ext=ext)
     return files_lst
+
+
+def to_absolute(paths):
+    """Convert relative paths to absolute."""
+    return [Path(path).resolve() for path in paths]
 
 
 def _walk(root, files, depth=1, ext=None):

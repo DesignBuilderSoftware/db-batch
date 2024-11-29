@@ -4,7 +4,7 @@ import os
 import time
 from threading import Thread
 
-from dbbatch.misc_os import list_dirs
+from db_batch.misc_os import list_dirs
 
 
 class Watcher(Thread):

@@ -1,4 +1,4 @@
-from dbbatch.run_batch import WATCH_EPLUS, run_batch
+from db_batch.run_batch import WATCH_EPLUS, run_batch
 
 if __name__ == "__main__":
     # CHANGE THIS TO A VALID PATH!
