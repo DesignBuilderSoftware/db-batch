@@ -6,4 +6,4 @@ venv
 build
 *.spec
 build.bat
-/dbbatch/scripts/
+/db_batch/scripts/
