@@ -227,8 +227,9 @@ def finish_report(report_file, report_dct):
 
 
 def run_batch(  # noqa: C901
-    models_root_dir,
+    models_root_or_file,
     outputs_root_dir,
+    *,
     make_output_subdirs=False,
     models_dirs_depth=1,
     analysis_type="sbem",
@@ -253,8 +254,8 @@ def run_batch(  # noqa: C901
 
     Parameters
     ----------
-    models_root_dir : str, path like
-        A root path in which models are placed.
+    models_root_or_file : str, path like
+        A root path in which models are placed, alternatively single file.
     outputs_root_dir: : str, path like
         A path in which output files will be copied.
     make_output_subdirs : bool default False
@@ -305,12 +306,20 @@ def run_batch(  # noqa: C901
     """
     kill_process("DesignBuilder.exe")
 
-    # get all the models which will be run in batch
-    model_paths = list_files(models_root_dir, depth=models_dirs_depth)
+    if not os.path.exists(models_root_or_file):
+        raise NoDsbFileFound("Path '{}' does not exist.".format(models_root_or_file))
 
-    if not model_paths:
-        # raise an error if there aren't any db models in specified folder
-        raise NoDsbFileFound("No .dsb model was found in '{}'.".format(models_root_dir))
+    if os.path.isdir(models_root_or_file):
+        # get all the models which will be run in batch
+        model_paths = list_files(models_root_or_file, depth=models_dirs_depth)
+
+        if not model_paths:
+            # raise an error if there aren't any db models in specified folder
+            raise NoDsbFileFound(
+                "No .dsb model was found in '{}'.".format(models_root_or_file)
+            )
+    else:
+        model_paths = [models_root_or_file]
 
     if not os.path.isfile(db_pth):
         raise InvalidDBExePath(

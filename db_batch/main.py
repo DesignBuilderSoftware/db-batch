@@ -13,7 +13,9 @@ parser = argparse.ArgumentParser(
 )
 
 parser.add_argument(
-    "modelsDir", help="directory containing models to be run (may be nested)"
+    "modelsDirOrFile",
+    help="directory containing models to be run (may be nested),"
+    " alternatively a single file",
 )
 parser.add_argument("outputsDir", help="directory where results will be stored")
 parser.add_argument(
@@ -124,8 +126,11 @@ if __name__ == "__main__":
         "sim_end_date": args.simEndDate,
         "no_close": args.noClose,
     }
-    str_args = f"\tmodels dir : {args.modelsDir}\n\toutputs dir : {args.outputsDir}\n"
+    str_args = (
+        f"\tmodels dir of file: {args.modelsDirOrFile}"
+        f"\n\toutputs dir: {args.outputsDir}\n"
+    )
     for k, v in kwargs.items():
         str_args += f"\t{k} : {v}\n"
     print(f"Running batch with following arguments:\n{str_args}")
-    run_batch(args.modelsDir, args.outputsDir, **kwargs)
+    run_batch(args.modelsDirOrFile, args.outputsDir, **kwargs)
