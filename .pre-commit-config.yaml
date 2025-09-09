@@ -1,14 +1,28 @@
 repos:
-  - repo: https://github.com/psf/black
-    rev: 24.10.0
+  # Ruff for linting and formatting
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.12.11  # Use the latest version
     hooks:
-      - id: black
-  - repo: https://github.com/PyCQA/flake8
-    rev: 7.1.1
+      # Run ruff check with import sorting (includes isort functionality)
+      - id: ruff
+        args: [--fix, --select, I]  # Focus on import sorting
+        name: ruff-imports
+      # Run the linter.
+      - id: ruff-check
+        name: ruff-check
+      # Run the formatter
+      - id: ruff-format
+        name: ruff-format
+
+  # Pylint for additional static analysis
+  - repo: local
     hooks:
-      - id: flake8
-  - repo: https://github.com/PyCQA/isort
-    rev: 5.13.2
-    hooks:
-      - id: isort
-        name: isort (python)
+      - id: pylint
+        name: pylint
+        entry: uv run pylint
+        language: system
+        types: [python]
+        args:
+          [
+            db_batch
+          ]
