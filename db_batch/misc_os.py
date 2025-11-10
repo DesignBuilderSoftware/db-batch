@@ -1,4 +1,5 @@
 import os
+import traceback
 from pathlib import Path
 from shutil import copyfile
 
@@ -143,7 +144,11 @@ def copy_file(
     try:
         copyfile(src, dest)
     except IOError:
-        print("Cannot copy file '{}' to '{}'.".format(src, dest))
+        print(
+            "Cannot copy file '{}' to '{}'.\n{}".format(
+                src, dest, traceback.format_exc()
+            )
+        )
 
 
 def get_process(name):
