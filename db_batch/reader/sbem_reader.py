@@ -122,8 +122,9 @@ class ModelEpcInpFile:
             return obj[attr]
         except KeyError:
             print(
-                "Attribute: '{}' was not found.\n"
-                "Available options are:\n\t{}".format(attr, "\n\t".join(obj.keys()))
+                "Attribute: '{}' was not found.\nAvailable options are:\n\t{}".format(
+                    attr, "\n\t".join(obj.keys())
+                )
             )
 
     def get_output_vals(self, par_name, child_name, attr_lst):
@@ -151,8 +152,7 @@ class ModelEpcInpFile:
 
         except KeyError:
             print(
-                "Object: '{}' was not found.\n"
-                "Available options are:\n\t{}".format(
+                "Object: '{}' was not found.\nAvailable options are:\n\t{}".format(
                     obj, "\n\t".join(parent_obj.keys())
                 )
             )
@@ -191,8 +191,7 @@ class ModelEpcInpFile:
 
         except KeyError:
             print(
-                "Object: '{}' was not found.\n"
-                "Available objects are:\n\t{}".format(
+                "Object: '{}' was not found.\nAvailable objects are:\n\t{}".format(
                     obj, "\n\t".join(self.main_objects)
                 )
             )

@@ -1,4 +1,4 @@
-""" Set of watchers to monitor calculation progress. """
+"""Set of watchers to monitor calculation progress."""
 
 import os
 import time
@@ -148,7 +148,6 @@ class EplusWatcher(Watcher):
     def read_err_file(self, err_pth):
         """Read the '.err' file to find out a simulation status."""
         while True:
-
             if not self._running:
                 # simulation has ended prematurely - timeout expired
                 # return True to avoid writing E+ failed status
@@ -161,7 +160,6 @@ class EplusWatcher(Watcher):
                 continue
 
             with open(err_pth, "r") as f:
-
                 while True:
                     lines = f.readlines()
 
@@ -195,7 +193,6 @@ class EplusWatcher(Watcher):
         original_jobs = list_dirs(self.job_server_dir)
 
         while True:
-
             if not self._running:
                 break
 

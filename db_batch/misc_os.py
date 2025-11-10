@@ -151,6 +151,7 @@ def get_process(name):
     for p in psutil.process_iter():
         if p.name() == name:
             return p
+    return None
 
 
 def on_terminate(proc):
