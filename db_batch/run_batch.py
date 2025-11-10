@@ -14,7 +14,7 @@ from db_batch.misc_os import (
 )
 from db_batch.watchers import EplusWatcher, SbemWatcher
 
-SBEM_VERSIONS = ["41e", "54a", "54b", "55h", "56a"]
+SBEM_VERSIONS = ["41e", "54a", "54b", "55h", "56a", "61e"]
 DB_PATH = "C:/Program Files (x86)/DesignBuilder/designbuilder.exe"
 TIMEOUT = 600
 DB_DATA = os.path.join(os.getenv("LOCALAPPDATA"), "DesignBuilder")
@@ -69,8 +69,9 @@ def get_loc(analysis):
 
     else:
         raise IncorrectAnalysisType(
-            "Incorrect analysis type: '{}'\n"
-            "This can be: {}, {}.".format(analysis, "eplus", "sbem")
+            "Incorrect analysis type: '{}'\nThis can be: {}, {}.".format(
+                analysis, "eplus", "sbem"
+            )
         )
 
 

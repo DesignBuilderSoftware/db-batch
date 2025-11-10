@@ -1,25 +1,49 @@
-[tool.poetry]
+[project]
 name = "db-batch"
 version = "0.1.0"
-description = ""
-authors = ["voightp <vojtechpanek@seznam.cz>"]
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+line-length = 96
 
-[tool.poetry.dependencies]
-python = ">=3.10, <=3.13"
+dependencies = [
+    "pandas>=2.3.2",
+    "psutil>=7.0.0",
+]
 
-[tool.poetry.group.dev.dependencies]
-pyinstaller = "^6.11.1"
-black = "^24.10.0"
-flake8 = "^7.1.1"
-isort = "^5.13.2"
-pre-commit = "^4.0.1"
+[dependency-groups]
+dev = [
+    "pre-commit>=4.3.0",
+    "pylint>=3.3.8",
+    "ruff>=0.12.12",
+]
 
-[tool.black]
-line-length = 88
-
-[tool.isort]
-profile = "black"
-
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+[tool.ruff]
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+]
