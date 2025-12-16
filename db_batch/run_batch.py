@@ -8,6 +8,7 @@ from db_batch.collector import Collector
 from db_batch.misc_os import (
     create_dir,
     kill_process,
+    kill_process_when_idle,
     list_files,
     split_file_name_ext,
     to_absolute,
@@ -424,18 +425,39 @@ def run_batch(  # noqa: C901
         w_thread = watcher(analysis_type)(*args)
         w_thread.start()
 
-        # run an actual DesignBuilder process
-        finished = run_subprocess(path, cmnd, db_pth=db_pth, timeout=timeout)
+        # run an actual DesignBuilder process (non-blocking for eplus)
+        if analysis_type.lower() == "eplus":
+            # For EnergyPlus, launch DesignBuilder and let watcher detect completion
+            subprocess.Popen([db_pth, f"{path} {cmnd}"])
 
-        if not finished:
-            # kill the thread as the model timeout expired
-            report_dct["expired"].append(model_name)
-            if report_file:
-                with open(report_file, "a") as f:
-                    msg = "File '{}' - Timeout expired!".format(model_name)
-                    f.write(msg + "\n")
+            # Monitor DesignBuilder and kill when idle
+            # This will terminate DesignBuilder when CPU is below 0.1% for 5+ seconds after being active
+            # This function blocks until DB is killed or process ends
+            kill_process_when_idle(name="DesignBuilder.exe", 
+                                   idle_threshold=10, 
+                                   check_interval=0.5, 
+                                   startup_period=20)
 
-            w_thread.stop()
+            # DesignBuilder has been killed by idle detector
+            # Watcher thread is still running in background, collecting files
+            # We don't wait for it - move to next simulation immediately
+            finished = True
+        else:
+            # For other analysis types, use original blocking approach
+            finished = run_subprocess(path, cmnd, db_pth=db_pth, timeout=timeout)
+
+            if not finished:
+                # kill the thread as the model timeout expired
+                report_dct["expired"].append(model_name)
+                if report_file:
+                    with open(report_file, "a") as f:
+                        msg = "File '{}' - Timeout expired!".format(model_name)
+                        f.write(msg + "\n")
+
+                w_thread.stop()
+
+            # Kill DesignBuilder after each simulation to ensure clean state
+            kill_process("DesignBuilder.exe")
 
         if analysis_type.lower() == "sbem":
             # for sbem analysis, there cannot be any pending watcher thread

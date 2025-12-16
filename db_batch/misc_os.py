@@ -159,12 +159,12 @@ def get_process(name):
     return None
 
 
-def on_terminate(proc):
+def on_terminate(process):
     """Report status."""
-    print("process {} terminated with exit code {}".format(proc, proc.returncode))
+    print("process {} terminated with exit code {}".format(process, process.returncode))
 
 
-def kill_process(name):
+def kill_process(name="DesignBuilder.exe"):
     """Terminate DesignBuilder forcefully."""
     db = get_process(name)
 
@@ -175,3 +175,60 @@ def kill_process(name):
         gone, alive = psutil.wait_procs([db], timeout=3, callback=on_terminate)
         for p in alive:
             p.kill()
+
+
+def kill_process_when_idle(name="DesignBuilder.exe", idle_threshold=10, check_interval=0.5, startup_period=20):
+    """
+    Monitor process and kill it when CPU usage is below 0.1% for specified duration.
+
+    Parameters
+    ----------
+    name : str
+        Process name to monitor
+    idle_threshold : float
+        Time in seconds that process must be idle (0% CPU) before killing
+    check_interval : float
+        How often to check CPU usage in seconds
+    startup_grace_period : float
+        Time in seconds to wait before starting idle detection (allows process to start up)
+    """
+    import time
+
+    process = get_process(name)
+    if not process:
+        return
+
+    idle_time = 0
+    has_been_active = False  # Track if process has ever been active
+
+    try:
+        # Wait for startup grace period
+        if startup_period > 0:
+            time.sleep(startup_period)
+
+        while process.is_running():
+            # Get CPU usage (interval=0.1 means measure over 0.1 seconds)
+            cpu_percent = process.cpu_percent(interval=0.1)
+
+            # Only start counting idle time after process has been active at least once
+            CPU_TRESHOLD = 0.1  # Define what is considered "active" CPU usage
+            if cpu_percent >= CPU_TRESHOLD:
+                has_been_active = True
+                idle_time = 0  # Reset idle counter
+            elif has_been_active and cpu_percent < CPU_TRESHOLD:
+                # Process was active before, now it's idle
+                idle_time += check_interval
+                if idle_time >= idle_threshold:
+                    print(f"DesignBuilder process has been idle for {idle_time:.1f}s - terminating...")
+                    process.terminate()
+                    # Wait for graceful shutdown
+                    _, alive = psutil.wait_procs([process], timeout=3)
+                    if alive:
+                        process.kill()
+                    break
+
+            time.sleep(check_interval)
+
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+        # Process already ended or access denied
+        pass
