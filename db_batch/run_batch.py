@@ -1,14 +1,23 @@
 import os
-import subprocess
 import threading
 import time
 from queue import Queue
 
+from db_process import (
+    eplus_simulation,
+    find_designbuilder,
+    kill_process,
+    kill_when_idle,
+    run,
+    run_async,
+    sbem_calculation,
+    ProcessChain,
+    Screen,
+)
+
 from db_batch.collector import Collector
 from db_batch.misc_os import (
     create_dir,
-    kill_process,
-    kill_process_when_idle,
     list_files,
     split_file_name_ext,
     to_absolute,
@@ -16,7 +25,6 @@ from db_batch.misc_os import (
 from db_batch.watchers import EplusWatcher, SbemWatcher
 
 SBEM_VERSIONS = ["41e", "54a", "54b", "55h", "56a", "61e"]
-DB_PATH = "C:/Program Files (x86)/DesignBuilder/designbuilder.exe"
 TIMEOUT = 600
 DB_DATA = os.path.join(os.getenv("LOCALAPPDATA"), "DesignBuilder")
 JOB_SERVER_DIR = "C:/ProgramData/DesignBuilder/JobServer/Users/User"
@@ -56,10 +64,6 @@ class InvalidStartingIndex(Exception):
     """Exception is raised when requested starting index is greater than n of models."""
 
 
-class InvalidDBExePath(Exception):
-    """Exception is raised when DB exe path is not valid."""
-
-
 def get_loc(analysis):
     """Get results subdirectory for the given analysis."""
     if analysis.lower() == "eplus":
@@ -82,74 +86,55 @@ def remove_files(paths):
         try:
             os.remove(path)
         except FileNotFoundError:
-            # print("Cannot remove file: '{}'\n\tFile not found!".format(path))
             pass
         except PermissionError:
             print("Cannot remove file: '{}'\n\tAccess denied!".format(path))
 
 
-def create_cmnd(
+def build_process_chain(
     analysis, sim_start_date, sim_end_date, use_sim_manager, attributes, no_close
 ):
-    """Create a command string for automatic processing."""
-    args = []
+    """Build a ProcessChain for batch processing.
 
-    if use_sim_manager:
-        args.append("UseSimManager")
-
-    if sim_start_date:
-        args.append(f"SimStartDate {sim_start_date[0]} {sim_start_date[1]}")
-
-    if sim_end_date:
-        args.append(f"SimEndDate {sim_end_date[0]} {sim_end_date[1]}")
-
-    if attributes:
-        args.extend([f"ChangeAttributeValue {attr} {val}" for attr, val in attributes])
-
-    if no_close:
-        args.extend(["NoClose"])
-
-    types = {
-        "eplus": "miGSS",
-        "sbem": "miGCalculate",
-        "dsm": "miGCalculate",  # not working
-    }
-
-    if analysis == "none":
-        # this is used for cases when it's desired
-        # only to update bunch of models
-        pass
-
+    This replaces the old ``create_cmnd()`` function, delegating
+    command construction to ``db_process``.
+    """
+    if analysis == "eplus":
+        chain = eplus_simulation(
+            sim_start_date=tuple(sim_start_date) if sim_start_date else None,
+            sim_end_date=tuple(sim_end_date) if sim_end_date else None,
+            use_sim_manager=use_sim_manager,
+            attributes=attributes,
+            no_close=no_close,
+        )
+    elif analysis in ("sbem", "dsm"):
+        chain = sbem_calculation(
+            sim_start_date=tuple(sim_start_date) if sim_start_date else None,
+            sim_end_date=tuple(sim_end_date) if sim_end_date else None,
+            attributes=attributes,
+            no_close=no_close,
+        )
+    elif analysis == "none":
+        # Only update models, no screen switch
+        chain = ProcessChain()
+        if use_sim_manager:
+            chain.use_sim_manager()
+        if sim_start_date:
+            chain.sim_start_date(sim_start_date[0], sim_start_date[1])
+        if sim_end_date:
+            chain.sim_end_date(sim_end_date[0], sim_end_date[1])
+        if attributes:
+            for attr, val in attributes:
+                chain.change_attribute(attr, val)
+        if no_close:
+            chain.no_close()
+        chain.run()
     else:
-        try:
-            args.append(types[analysis])
+        raise KeyError("Incorrect analysis type: '{}'.".format(analysis))
 
-        except KeyError:
-            raise KeyError("Incorrect analysis type: '{}'.".format(analysis))
-
-    args.append("miTUpdate")
-
-    if len(args) == 1:
-        cmnd = "/process=" + args[0]
-    else:
-        cmnd = "/process=" + ", ".join(args)
-
+    cmnd = chain.to_string()
     print(f"Running batch using '{cmnd}' command args. ")
-
-    return cmnd
-
-
-def run_subprocess(file, cmd, db_pth=DB_PATH, timeout=TIMEOUT):
-    """Run DesignBuilder file."""
-    cmnd = f"{file} {cmd}"  # add file path to the command
-
-    try:
-        subprocess.run([db_pth, cmnd], timeout=timeout)
-        return True
-
-    except subprocess.TimeoutExpired:
-        print(f"Model '{file}' - Timeout expired!")
-        return False
+    return chain
 
 
 def watcher(analysis):
@@ -237,7 +222,7 @@ def run_batch(  # noqa: C901
     analysis_type="sbem",
     db_data_dir=DB_DATA,
     watch_files="default",
-    db_pth=DB_PATH,
+    db_pth=None,
     job_server_dir=JOB_SERVER_DIR,
     timeout=TIMEOUT,
     start_index=1,
@@ -273,8 +258,9 @@ def run_batch(  # noqa: C901
     watch_files : 'default' or list of str
         A list with specified files to be watched when running a calculation.
         When this is 'default' relevant files are picked up automatically.
-    db_pth : str, path like
-        Path to DesignBuilder executable.
+    db_pth : str, path like, optional
+        Path to DesignBuilder executable.  When None, uses db_process
+        auto-discovery (env var, default install paths, system PATH).
     job_server_dir : str, path like
         A path to 'job server' directory (where 'Simulation Manager'
         outputs are stored).
@@ -306,7 +292,7 @@ def run_batch(  # noqa: C901
         Prevent DB from closing after executing command.
 
     """
-    kill_process("DesignBuilder.exe")
+    kill_process()
 
     if not os.path.exists(models_root_or_file):
         raise NoDsbFileFound("Path '{}' does not exist.".format(models_root_or_file))
@@ -323,11 +309,8 @@ def run_batch(  # noqa: C901
     else:
         model_paths = [models_root_or_file]
 
-    if not os.path.isfile(db_pth):
-        raise InvalidDBExePath(
-            "DB executable path '{}' is not valid.\n"
-            "Specify the correct path using 'db_path' kwarg.".format(db_pth)
-        )
+    # Validate that DesignBuilder can be found (raises FileNotFoundError if not)
+    exe = find_designbuilder(db_pth)
 
     if watch_files == "default":
         watch_files = WATCH_SBEM if analysis_type == "sbem" else WATCH_EPLUS
@@ -389,7 +372,8 @@ def run_batch(  # noqa: C901
         os.path.join(db_data_dir, loc, file) for file in watch_files for loc in locs
     ]
 
-    cmnd = create_cmnd(
+    # Build the process chain using db_process
+    chain = build_process_chain(
         analysis_type,
         sim_start_date,
         sim_end_date,
@@ -427,24 +411,29 @@ def run_batch(  # noqa: C901
 
         # run an actual DesignBuilder process (non-blocking for eplus)
         if analysis_type.lower() == "eplus":
-            # For EnergyPlus, launch DesignBuilder and let watcher detect completion
-            subprocess.Popen([db_pth, f"{path} {cmnd}"])
+            # For EnergyPlus, launch DesignBuilder non-blocking
+            handle = run_async(path, chain, exe_path=exe)
 
             # Monitor DesignBuilder and kill when idle
-            # This will terminate DesignBuilder when CPU is below 0.1% for 5+ seconds after being active
+            # This will terminate DesignBuilder when CPU is below 0.1% for 10+ seconds
             # This function blocks until DB is killed or process ends
-            kill_process_when_idle(name="DesignBuilder.exe", 
-                                   idle_threshold=10, 
-                                   check_interval=0.5, 
-                                   startup_period=20)
+            kill_when_idle(
+                idle_threshold=10,
+                check_interval=0.5,
+                startup_period=20,
+            )
 
             # DesignBuilder has been killed by idle detector
             # Watcher thread is still running in background, collecting files
             # We don't wait for it - move to next simulation immediately
             finished = True
         else:
-            # For other analysis types, use original blocking approach
-            finished = run_subprocess(path, cmnd, db_pth=db_pth, timeout=timeout)
+            # For other analysis types, use blocking approach
+            result = run(path, chain, exe_path=exe, timeout=timeout)
+            finished = result.success and not result.timed_out
+
+            if result.timed_out:
+                print(f"Model '{path}' - Timeout expired!")
 
             if not finished:
                 # kill the thread as the model timeout expired
@@ -457,7 +446,7 @@ def run_batch(  # noqa: C901
                 w_thread.stop()
 
             # Kill DesignBuilder after each simulation to ensure clean state
-            kill_process("DesignBuilder.exe")
+            kill_process()
 
         if analysis_type.lower() == "sbem":
             # for sbem analysis, there cannot be any pending watcher thread

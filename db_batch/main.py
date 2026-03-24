@@ -3,7 +3,6 @@ import os
 
 from db_batch.run_batch import run_batch
 
-DB_PATH = "C:/Program Files (x86)/DesignBuilder/designbuilder.exe"
 JOB_SERVER_DIR = "C:/ProgramData/DesignBuilder/JobServer/Users/User"
 DB_DATA = os.path.join(os.getenv("LOCALAPPDATA"), "DesignBuilder")
 
@@ -28,8 +27,8 @@ parser.add_argument(
 parser.add_argument(
     "--dbPath",
     type=str,
-    default=DB_PATH,
-    help=f"path to DesignBuilder executable (default: {DB_PATH})",
+    default=None,
+    help="path to DesignBuilder executable (default: auto-detected by db-process)",
 )
 parser.add_argument(
     "--jobServerDir",
