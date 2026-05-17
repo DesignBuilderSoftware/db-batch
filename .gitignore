@@ -8,3 +8,6 @@ build
 *.spec
 build.bat
 /db_batch/scripts/
+
+# direnv cache
+.direnv/
