@@ -3,7 +3,7 @@ name = "db-batch"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 
 dependencies = [
     "pandas>=2.3.2",
@@ -47,3 +47,13 @@ exclude = [
     "venv",
 ]
 line-length = 96
+
+[tool.pylint."messages control"]
+disable = [
+    "C0301", # line-too-long (enforced by ruff at line-length 96)
+    "R0903", # too-few-public-methods (noise on exception/thread subclasses)
+]
+
+[tool.pylint.design]
+max-args = 7
+max-positional-arguments = 7

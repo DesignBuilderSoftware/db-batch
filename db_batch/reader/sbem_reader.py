@@ -52,7 +52,7 @@ def get_results(inp_pths: Union[List[str], str], request: tuple) -> pd.DataFrame
     sers = []
     for inp_pth in inp_pths:
         inp_file = ModelEpcInpFile(inp_pth)
-        print("Extracting results from: '{}'".format(inp_file.name))
+        print(f"Extracting results from: '{inp_file.name}'")
         outputs = inp_file.get_output_vals(*request)
         sers.append(pd.Series(outputs, name=inp_file.name))
 
@@ -126,6 +126,7 @@ class ModelEpcInpFile:
                     attr, "\n\t".join(obj.keys())
                 )
             )
+            return None
 
     def get_output_vals(self, par_name, child_name, attr_lst):
         """Return a dictionary {attr: val, ...} for a given object."""
@@ -133,7 +134,7 @@ class ModelEpcInpFile:
         attrs = {}
 
         if not obj:
-            return
+            return None
 
         for attr in attr_lst:
             val = self._get_attr(obj, attr)
@@ -156,6 +157,7 @@ class ModelEpcInpFile:
                     obj, "\n\t".join(parent_obj.keys())
                 )
             )
+            return None
 
     def _get_main_obj(self, obj_name):
         """Fetch main object content."""
@@ -173,7 +175,7 @@ class ModelEpcInpFile:
     def print_all_main_objects(self):
         """Print only top level object names."""
         objects_str = "\n\t".join(self.main_objects)
-        print("Available objects:\n\t{}".format(objects_str))
+        print(f"Available objects:\n\t{objects_str}")
 
     def print_all_objects(self):
         """Print all objects (main + child)."""
@@ -182,7 +184,7 @@ class ModelEpcInpFile:
         for k, v in self.all_objects.items():
             objects_str += "{}\n\t{}\n".format(k, "\n\t".join(v))
 
-        print("Available objects:\n{}".format(objects_str))
+        print(f"Available objects:\n{objects_str}")
 
     def print_object_content(self, obj):
         """Print attributes for"""
@@ -195,6 +197,7 @@ class ModelEpcInpFile:
                     obj, "\n\t".join(self.main_objects)
                 )
             )
+            return None
 
     @staticmethod
     def process_line(line):
@@ -223,8 +226,8 @@ class ModelEpcInpFile:
             if obj == "BUILDING-DATA" and field == "ANALYSIS":
                 building = value
 
-            if obj == "BUILDING-DATA" or obj == "HVAC-SYSTEM-DATA":
-                b_obj = "{} - {}".format(building, obj)
+            if obj in ("BUILDING-DATA", "HVAC-SYSTEM-DATA"):
+                b_obj = f"{building} - {obj}"
 
             objects[b_obj][name][field] = value
 
@@ -258,8 +261,9 @@ class ModelEpcInpFile:
     def read_model_epc(self, path):
         """Open the .inp file and trigger processing."""
         try:
-            with open(path) as input_file:
+            with open(path, encoding="utf-8") as input_file:
                 return self.process_file(input_file)
 
         except IOError:
-            print("Cannot open file: '{}'.".format(path))
+            print(f"Cannot open file: '{path}'.")
+            return None

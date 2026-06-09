@@ -1,3 +1,5 @@
+"""Run a batch of DesignBuilder files and collect their outputs."""
+
 import os
 import subprocess
 import threading
@@ -65,15 +67,12 @@ def get_loc(analysis):
     if analysis.lower() == "eplus":
         return ["energyplus"]
 
-    elif analysis.lower() == "sbem":
+    if analysis.lower() == "sbem":
         return SBEM_VERSIONS
 
-    else:
-        raise IncorrectAnalysisType(
-            "Incorrect analysis type: '{}'\nThis can be: {}, {}.".format(
-                analysis, "eplus", "sbem"
-            )
-        )
+    raise IncorrectAnalysisType(
+        f"Incorrect analysis type: '{analysis}'\nThis can be: eplus, sbem."
+    )
 
 
 def remove_files(paths):
@@ -85,7 +84,7 @@ def remove_files(paths):
             # print("Cannot remove file: '{}'\n\tFile not found!".format(path))
             pass
         except PermissionError:
-            print("Cannot remove file: '{}'\n\tAccess denied!".format(path))
+            print(f"Cannot remove file: '{path}'\n\tAccess denied!")
 
 
 def create_cmnd(
@@ -124,8 +123,8 @@ def create_cmnd(
         try:
             args.append(types[analysis])
 
-        except KeyError:
-            raise KeyError("Incorrect analysis type: '{}'.".format(analysis))
+        except KeyError as exc:
+            raise KeyError(f"Incorrect analysis type: '{analysis}'.") from exc
 
     args.append("miTUpdate")
 
@@ -144,7 +143,7 @@ def run_subprocess(file, cmd, db_pth=DB_PATH, timeout=TIMEOUT):
     cmnd = f"{file} {cmd}"  # add file path to the command
 
     try:
-        subprocess.run([db_pth, cmnd], timeout=timeout)
+        subprocess.run([db_pth, cmnd], timeout=timeout, check=False)
         return True
 
     except subprocess.TimeoutExpired:
@@ -163,15 +162,15 @@ def watcher(analysis):
     types = {"sbem": SbemWatcher, "eplus": EplusWatcher, "dsm": None}
 
     try:
-        watcher = types[analysis]
+        watcher_cls = types[analysis]
 
-    except KeyError:
-        raise KeyError("Incorrect analysis type: '{}'.".format(analysis))
+    except KeyError as exc:
+        raise KeyError(f"Incorrect analysis type: '{analysis}'.") from exc
 
     if analysis == "dsm":
-        raise Exception("DSM not supported!")
+        raise NotImplementedError("DSM not supported!")
 
-    return watcher
+    return watcher_cls
 
 
 def pick_up_files(analysis_type):
@@ -187,11 +186,11 @@ def pick_up_files(analysis_type):
     try:
         files = data[analysis_type]
 
-    except KeyError:
-        raise KeyError("Incorrect analysis type: '{}'.".format(analysis_type))
+    except KeyError as exc:
+        raise KeyError(f"Incorrect analysis type: '{analysis_type}'.") from exc
 
     if analysis_type == "dsm":
-        raise Exception("DSM not supported!")
+        raise NotImplementedError("DSM not supported!")
 
     return files
 
@@ -199,14 +198,12 @@ def pick_up_files(analysis_type):
 def init_report(analysis_type, outputs_root_dir, num_models):
     """Initialize output report file."""
     str_tme = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime(time.time()))
-    name = "summary_{}_{}.txt".format(analysis_type, str_tme)
+    name = f"summary_{analysis_type}_{str_tme}.txt"
     report_file = os.path.join(outputs_root_dir, name)
 
-    with open(report_file, "w") as f:
+    with open(report_file, "w", encoding="utf-8") as f:
         f.write(
-            "Running '{}' analysis.\n\tNumber of files: '{}'.\n".format(
-                analysis_type, num_models
-            )
+            f"Running '{analysis_type}' analysis.\n\tNumber of files: '{num_models}'.\n"
         )
 
     return report_file
@@ -214,17 +211,18 @@ def init_report(analysis_type, outputs_root_dir, num_models):
 
 def finish_report(report_file, report_dct):
     """Summarize batch run analysis."""
+    stars = "*" * 50
     lines = [
-        "\n{}".format("*" * 50),
+        f"\n{stars}",
         "\nSummary:",
-        "\n\tSkipped: '{}' models.".format(len(report_dct["skipped"])),
-        "\n\tTimeout expired: '{}' models.".format(len(report_dct["expired"])),
-        "\n\tFailed: '{}' models.".format(len(report_dct["failed"])),
-        "\n\tSuccessful: '{}' models.".format(len(report_dct["successful"])),
-        "\n{}".format("*" * 50),
+        f"\n\tSkipped: '{len(report_dct['skipped'])}' models.",
+        f"\n\tTimeout expired: '{len(report_dct['expired'])}' models.",
+        f"\n\tFailed: '{len(report_dct['failed'])}' models.",
+        f"\n\tSuccessful: '{len(report_dct['successful'])}' models.",
+        f"\n{stars}",
     ]
     print("".join(lines))
-    with open(report_file, "a") as f:
+    with open(report_file, "a", encoding="utf-8") as f:
         f.writelines(lines)
 
 
@@ -306,10 +304,13 @@ def run_batch(  # noqa: C901
         Prevent DB from closing after executing command.
 
     """
+    # run_batch is the public batch entry point; its long keyword-only argument
+    # list mirrors the CLI options, so the size/complexity checks are relaxed here.
+    # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
     kill_process("DesignBuilder.exe")
 
     if not os.path.exists(models_root_or_file):
-        raise NoDsbFileFound("Path '{}' does not exist.".format(models_root_or_file))
+        raise NoDsbFileFound(f"Path '{models_root_or_file}' does not exist.")
 
     if os.path.isdir(models_root_or_file):
         # get all the models which will be run in batch
@@ -317,16 +318,14 @@ def run_batch(  # noqa: C901
 
         if not model_paths:
             # raise an error if there aren't any db models in specified folder
-            raise NoDsbFileFound(
-                "No .dsb model was found in '{}'.".format(models_root_or_file)
-            )
+            raise NoDsbFileFound(f"No .dsb model was found in '{models_root_or_file}'.")
     else:
         model_paths = [models_root_or_file]
 
     if not os.path.isfile(db_pth):
         raise InvalidDBExePath(
-            "DB executable path '{}' is not valid.\n"
-            "Specify the correct path using 'db_path' kwarg.".format(db_pth)
+            f"DB executable path '{db_pth}' is not valid.\n"
+            "Specify the correct path using 'db_path' kwarg."
         )
 
     if watch_files == "default":
@@ -349,8 +348,8 @@ def run_batch(  # noqa: C901
     start_index = 1 if not start_index else start_index
     if start_index > len(model_paths):
         raise InvalidStartingIndex(
-            "Chosen start index '{}' is higher than actual "
-            "number of models: '{}'.".format(start_index, len(model_paths))
+            f"Chosen start index '{start_index}' is higher than actual "
+            f"number of models: '{len(model_paths)}'."
         )
 
     # create a queue which will be used to pass
@@ -408,7 +407,7 @@ def run_batch(  # noqa: C901
         if i < start_index or i > (end_index if end_index else 9999999):
             # non-default starting index has been requested
             # skip until the condition is met
-            print("Skipping {}/{} - '{}'".format(i, len(model_paths), model_name))
+            print(f"Skipping {i}/{len(model_paths)} - '{model_name}'")
             report_dct["skipped"].append(model_name)
             continue
 
@@ -418,7 +417,7 @@ def run_batch(  # noqa: C901
             # job server is not applicable for sbem calculation
             args = args[:3]
 
-        print("Running {}/{} - '{}'".format(i, len(model_paths), model_name))
+        print(f"Running {i}/{len(model_paths)} - '{model_name}'")
 
         # run a watcher thread which is responsible for watching
         # output files based on analysis type
@@ -427,16 +426,21 @@ def run_batch(  # noqa: C901
 
         # run an actual DesignBuilder process (non-blocking for eplus)
         if analysis_type.lower() == "eplus":
-            # For EnergyPlus, launch DesignBuilder and let watcher detect completion
+            # For EnergyPlus, launch DesignBuilder and let watcher detect completion.
+            # Fire-and-forget: the process is terminated by kill_process_when_idle
+            # below (by name), so it intentionally outlives this statement.
+            # pylint: disable-next=consider-using-with
             subprocess.Popen([db_pth, f"{path} {cmnd}"])
 
             # Monitor DesignBuilder and kill when idle
             # This will terminate DesignBuilder when CPU is below 0.1% for 5+ seconds after being active
             # This function blocks until DB is killed or process ends
-            kill_process_when_idle(name="DesignBuilder.exe", 
-                                   idle_threshold=10, 
-                                   check_interval=0.5, 
-                                   startup_period=20)
+            kill_process_when_idle(
+                name="DesignBuilder.exe",
+                idle_threshold=10,
+                check_interval=0.5,
+                startup_period=20,
+            )
 
             # DesignBuilder has been killed by idle detector
             # Watcher thread is still running in background, collecting files
@@ -450,8 +454,8 @@ def run_batch(  # noqa: C901
                 # kill the thread as the model timeout expired
                 report_dct["expired"].append(model_name)
                 if report_file:
-                    with open(report_file, "a") as f:
-                        msg = "File '{}' - Timeout expired!".format(model_name)
+                    with open(report_file, "a", encoding="utf-8") as f:
+                        msg = f"File '{model_name}' - Timeout expired!"
                         f.write(msg + "\n")
 
                 w_thread.stop()
