@@ -7,7 +7,14 @@ import psutil
 
 
 def list_dirs(pth):
-    """Return sub-directory paths."""
+    """Return sub-directory paths.
+
+    Returns an empty list when 'pth' does not exist yet. On a fresh machine
+    the 'job server' directory is only created once the Simulation Manager
+    submits its first job, so the watcher must tolerate it being absent.
+    """
+    if not os.path.isdir(pth):
+        return []
     content = os.listdir(pth)
     dirs = []
     for name in content:
