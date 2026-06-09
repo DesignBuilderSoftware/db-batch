@@ -1,3 +1,5 @@
+"""Filesystem and process helpers used by the batch runner."""
+
 import os
 import time
 import traceback
@@ -23,7 +25,7 @@ def list_files(root, depth=1, ext="dsb"):
     files_lst = []
 
     if not os.path.isdir(root):
-        raise FileNotFoundError("Root folder '{}' does not exist!".format(root))
+        raise FileNotFoundError(f"Root folder '{root}' does not exist!")
 
     _walk(root, files_lst, depth=depth, ext=ext)
     return files_lst
@@ -132,9 +134,9 @@ def copy_file(
 
     if model_name and include_model_name:
         if include_orig_name:
-            out = "{} - {}{}".format(model_name, orig_name, ext)
+            out = f"{model_name} - {orig_name}{ext}"
         else:
-            out = "{}{}".format(model_name, ext)
+            out = f"{model_name}{ext}"
 
     if make_subdirs and model_name:
         create_dir(os.path.join(dest, model_name))
@@ -145,11 +147,7 @@ def copy_file(
     try:
         copyfile(src, dest)
     except IOError:
-        print(
-            "Cannot copy file '{}' to '{}'.\n{}".format(
-                src, dest, traceback.format_exc()
-            )
-        )
+        print(f"Cannot copy file '{src}' to '{dest}'.\n{traceback.format_exc()}")
 
 
 def get_process(name):
@@ -162,7 +160,7 @@ def get_process(name):
 
 def on_terminate(process):
     """Report status."""
-    print("process {} terminated with exit code {}".format(process, process.returncode))
+    print(f"process {process} terminated with exit code {process.returncode}")
 
 
 def kill_process(name="DesignBuilder.exe"):
@@ -173,7 +171,7 @@ def kill_process(name="DesignBuilder.exe"):
         print("Killing DesignBuilder process!")
         db.terminate()
 
-        gone, alive = psutil.wait_procs([db], timeout=3, callback=on_terminate)
+        _, alive = psutil.wait_procs([db], timeout=3, callback=on_terminate)
         for p in alive:
             p.kill()
 

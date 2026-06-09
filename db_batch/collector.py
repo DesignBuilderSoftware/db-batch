@@ -1,3 +1,5 @@
+"""Collector thread that copies output files produced during a batch run."""
+
 from threading import Thread
 
 from db_batch.misc_os import copy_files

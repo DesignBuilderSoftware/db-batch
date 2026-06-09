@@ -53,7 +53,7 @@ class Watcher(Thread):
         while self._running:
             for path in self.paths:
                 try:
-                    with open(path, "r"):
+                    with open(path, "r", encoding="utf-8"):
                         files.add(path)
                 except FileNotFoundError:
                     pass
@@ -122,14 +122,14 @@ class EplusWatcher(Watcher):
         # this is a main check to see if simulation finished successfully
         success = self.read_err_file(files_dct["eplusout.err"])
 
-        files = [v for v in files_dct.values()]
+        files = list(files_dct.values())
 
         if not success:
             # copy only err and idf file as the other will not be available
             self.report_dct["failed"].append(self.model_name)
 
             if self.report_file:
-                with open(self.report_file, "a") as f:
+                with open(self.report_file, "a", encoding="utf-8") as f:
                     msg = f"Model '{self.model_name}' - EnergyPlus failed!"
                     f.write(msg + "\n")
 
@@ -156,7 +156,7 @@ class EplusWatcher(Watcher):
                 # wait until the '.err' file is generated
                 continue
 
-            with open(err_pth, "r") as f:
+            with open(err_pth, "r", encoding="utf-8") as f:
                 while True:
                     lines = f.readlines()
 

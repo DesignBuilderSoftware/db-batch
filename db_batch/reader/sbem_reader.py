@@ -52,7 +52,7 @@ def get_results(inp_pths: Union[List[str], str], request: tuple) -> pd.DataFrame
     sers = []
     for inp_pth in inp_pths:
         inp_file = ModelEpcInpFile(inp_pth)
-        print("Extracting results from: '{}'".format(inp_file.name))
+        print(f"Extracting results from: '{inp_file.name}'")
         outputs = inp_file.get_output_vals(*request)
         sers.append(pd.Series(outputs, name=inp_file.name))
 
@@ -175,7 +175,7 @@ class ModelEpcInpFile:
     def print_all_main_objects(self):
         """Print only top level object names."""
         objects_str = "\n\t".join(self.main_objects)
-        print("Available objects:\n\t{}".format(objects_str))
+        print(f"Available objects:\n\t{objects_str}")
 
     def print_all_objects(self):
         """Print all objects (main + child)."""
@@ -184,7 +184,7 @@ class ModelEpcInpFile:
         for k, v in self.all_objects.items():
             objects_str += "{}\n\t{}\n".format(k, "\n\t".join(v))
 
-        print("Available objects:\n{}".format(objects_str))
+        print(f"Available objects:\n{objects_str}")
 
     def print_object_content(self, obj):
         """Print attributes for"""
@@ -227,7 +227,7 @@ class ModelEpcInpFile:
                 building = value
 
             if obj in ("BUILDING-DATA", "HVAC-SYSTEM-DATA"):
-                b_obj = "{} - {}".format(building, obj)
+                b_obj = f"{building} - {obj}"
 
             objects[b_obj][name][field] = value
 
@@ -261,9 +261,9 @@ class ModelEpcInpFile:
     def read_model_epc(self, path):
         """Open the .inp file and trigger processing."""
         try:
-            with open(path) as input_file:
+            with open(path, encoding="utf-8") as input_file:
                 return self.process_file(input_file)
 
         except IOError:
-            print("Cannot open file: '{}'.".format(path))
+            print(f"Cannot open file: '{path}'.")
             return None

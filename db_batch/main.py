@@ -1,3 +1,5 @@
+"""Command line entry point for running a batch of DesignBuilder files."""
+
 import argparse
 import os
 
