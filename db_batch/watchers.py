@@ -64,9 +64,6 @@ class Watcher(Thread):
 class SbemWatcher(Watcher):
     """A watcher thread to monitor sbem outputs processing."""
 
-    def __init__(self, model_name, paths, queue):
-        super().__init__(model_name, paths, queue)
-
 
 class EplusWatcher(Watcher):
     """
@@ -171,7 +168,7 @@ class EplusWatcher(Watcher):
                             )
                             return True
 
-                        elif "EnergyPlus Terminated--Fatal Error Detected" in line:
+                        if "EnergyPlus Terminated--Fatal Error Detected" in line:
                             print(
                                 f"\tModel: '{self.model_name}' - "
                                 f"EnergyPlus Terminated--Fatal Error Detected"
@@ -213,9 +210,11 @@ class EplusWatcher(Watcher):
                 print("\tRunning standard simulation.")
                 return None
 
-            elif new_path:
+            if new_path:
                 # new directory has been created in the 'jobs' directory
                 # simulation runs using 'Simulation Manager'
                 new_path = new_path.pop()
                 print("\tRunning simulation using SM.")
                 return new_path
+
+        return None

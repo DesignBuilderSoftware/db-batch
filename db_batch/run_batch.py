@@ -65,15 +65,14 @@ def get_loc(analysis):
     if analysis.lower() == "eplus":
         return ["energyplus"]
 
-    elif analysis.lower() == "sbem":
+    if analysis.lower() == "sbem":
         return SBEM_VERSIONS
 
-    else:
-        raise IncorrectAnalysisType(
-            "Incorrect analysis type: '{}'\nThis can be: {}, {}.".format(
-                analysis, "eplus", "sbem"
-            )
+    raise IncorrectAnalysisType(
+        "Incorrect analysis type: '{}'\nThis can be: {}, {}.".format(
+            analysis, "eplus", "sbem"
         )
+    )
 
 
 def remove_files(paths):
@@ -144,7 +143,7 @@ def run_subprocess(file, cmd, db_pth=DB_PATH, timeout=TIMEOUT):
     cmnd = f"{file} {cmd}"  # add file path to the command
 
     try:
-        subprocess.run([db_pth, cmnd], timeout=timeout)
+        subprocess.run([db_pth, cmnd], timeout=timeout, check=False)
         return True
 
     except subprocess.TimeoutExpired:
@@ -169,7 +168,7 @@ def watcher(analysis):
         raise KeyError("Incorrect analysis type: '{}'.".format(analysis))
 
     if analysis == "dsm":
-        raise Exception("DSM not supported!")
+        raise NotImplementedError("DSM not supported!")
 
     return watcher
 
@@ -191,7 +190,7 @@ def pick_up_files(analysis_type):
         raise KeyError("Incorrect analysis type: '{}'.".format(analysis_type))
 
     if analysis_type == "dsm":
-        raise Exception("DSM not supported!")
+        raise NotImplementedError("DSM not supported!")
 
     return files
 
@@ -306,6 +305,7 @@ def run_batch(  # noqa: C901
         Prevent DB from closing after executing command.
 
     """
+    # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     kill_process("DesignBuilder.exe")
 
     if not os.path.exists(models_root_or_file):
@@ -427,16 +427,21 @@ def run_batch(  # noqa: C901
 
         # run an actual DesignBuilder process (non-blocking for eplus)
         if analysis_type.lower() == "eplus":
-            # For EnergyPlus, launch DesignBuilder and let watcher detect completion
+            # For EnergyPlus, launch DesignBuilder and let watcher detect completion.
+            # Fire-and-forget: the process is terminated by kill_process_when_idle
+            # below (by name), so it intentionally outlives this statement.
+            # pylint: disable-next=consider-using-with
             subprocess.Popen([db_pth, f"{path} {cmnd}"])
 
             # Monitor DesignBuilder and kill when idle
             # This will terminate DesignBuilder when CPU is below 0.1% for 5+ seconds after being active
             # This function blocks until DB is killed or process ends
-            kill_process_when_idle(name="DesignBuilder.exe", 
-                                   idle_threshold=10, 
-                                   check_interval=0.5, 
-                                   startup_period=20)
+            kill_process_when_idle(
+                name="DesignBuilder.exe",
+                idle_threshold=10,
+                check_interval=0.5,
+                startup_period=20,
+            )
 
             # DesignBuilder has been killed by idle detector
             # Watcher thread is still running in background, collecting files

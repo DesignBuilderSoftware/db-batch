@@ -105,7 +105,8 @@ parser.add_argument(
     help="update a model attribute: attribute name value",
 )
 
-if __name__ == "__main__":
+def main():
+    """Parse command line arguments and run the batch."""
     args = parser.parse_args()
     kwargs = {
         "models_dirs_depth": args.nSubDirs,
@@ -134,3 +135,7 @@ if __name__ == "__main__":
         str_args += f"\t{k} : {v}\n"
     print(f"Running batch with following arguments:\n{str_args}")
     run_batch(args.modelsDirOrFile, args.outputsDir, **kwargs)
+
+
+if __name__ == "__main__":
+    main()

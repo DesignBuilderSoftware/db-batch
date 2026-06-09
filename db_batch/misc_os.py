@@ -1,4 +1,5 @@
 import os
+import time
 import traceback
 from pathlib import Path
 from shutil import copyfile
@@ -192,8 +193,6 @@ def kill_process_when_idle(name="DesignBuilder.exe", idle_threshold=10, check_in
     startup_grace_period : float
         Time in seconds to wait before starting idle detection (allows process to start up)
     """
-    import time
-
     process = get_process(name)
     if not process:
         return
@@ -211,11 +210,11 @@ def kill_process_when_idle(name="DesignBuilder.exe", idle_threshold=10, check_in
             cpu_percent = process.cpu_percent(interval=0.1)
 
             # Only start counting idle time after process has been active at least once
-            CPU_TRESHOLD = 0.1  # Define what is considered "active" CPU usage
-            if cpu_percent >= CPU_TRESHOLD:
+            cpu_threshold = 0.1  # Define what is considered "active" CPU usage
+            if cpu_percent >= cpu_threshold:
                 has_been_active = True
                 idle_time = 0  # Reset idle counter
-            elif has_been_active and cpu_percent < CPU_TRESHOLD:
+            elif has_been_active and cpu_percent < cpu_threshold:
                 # Process was active before, now it's idle
                 idle_time += check_interval
                 if idle_time >= idle_threshold:
