@@ -1,9 +1,12 @@
 import os
 import traceback
+import warnings
 from pathlib import Path
 from shutil import copyfile
 
-import psutil
+from db_process import kill_process as _kill_process
+from db_process import kill_when_idle as _kill_when_idle
+from db_process import find_process as _find_process
 
 
 def list_dirs(pth):
@@ -151,84 +154,76 @@ def copy_file(
         )
 
 
-def get_process(name):
-    """Get process by name."""
-    for p in psutil.process_iter():
-        if p.name() == name:
-            return p
-    return None
+# ---------------------------------------------------------------------------
+# Deprecated wrappers — delegate to db_process
+# ---------------------------------------------------------------------------
+# These functions were moved to the ``db_process`` package.  The wrappers
+# below keep backwards-compatibility for any external code that imports
+# them from ``db_batch.misc_os``.
+
+
+def get_process(name="DesignBuilder.exe"):
+    """Get process by name.
+
+    .. deprecated::
+        Use ``db_process.find_process`` instead.
+    """
+    warnings.warn(
+        "db_batch.misc_os.get_process is deprecated, use db_process.find_process",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return _find_process(name)
 
 
 def on_terminate(process):
-    """Report status."""
+    """Report status.
+
+    .. deprecated::
+        This callback is no longer used by db_process.
+    """
+    warnings.warn(
+        "db_batch.misc_os.on_terminate is deprecated",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     print("process {} terminated with exit code {}".format(process, process.returncode))
 
 
 def kill_process(name="DesignBuilder.exe"):
-    """Terminate DesignBuilder forcefully."""
-    db = get_process(name)
+    """Terminate DesignBuilder forcefully.
 
-    if db:
-        print("Killing DesignBuilder process!")
-        db.terminate()
-
-        gone, alive = psutil.wait_procs([db], timeout=3, callback=on_terminate)
-        for p in alive:
-            p.kill()
-
-
-def kill_process_when_idle(name="DesignBuilder.exe", idle_threshold=10, check_interval=0.5, startup_period=20):
+    .. deprecated::
+        Use ``db_process.kill_process`` instead.
     """
-    Monitor process and kill it when CPU usage is below 0.1% for specified duration.
+    warnings.warn(
+        "db_batch.misc_os.kill_process is deprecated, use db_process.kill_process",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return _kill_process(name)
 
-    Parameters
-    ----------
-    name : str
-        Process name to monitor
-    idle_threshold : float
-        Time in seconds that process must be idle (0% CPU) before killing
-    check_interval : float
-        How often to check CPU usage in seconds
-    startup_grace_period : float
-        Time in seconds to wait before starting idle detection (allows process to start up)
+
+def kill_process_when_idle(
+    name="DesignBuilder.exe",
+    idle_threshold=10,
+    check_interval=0.5,
+    startup_period=20,
+):
+    """Monitor process and kill it when CPU usage drops.
+
+    .. deprecated::
+        Use ``db_process.kill_when_idle`` instead.
     """
-    import time
-
-    process = get_process(name)
-    if not process:
-        return
-
-    idle_time = 0
-    has_been_active = False  # Track if process has ever been active
-
-    try:
-        # Wait for startup grace period
-        if startup_period > 0:
-            time.sleep(startup_period)
-
-        while process.is_running():
-            # Get CPU usage (interval=0.1 means measure over 0.1 seconds)
-            cpu_percent = process.cpu_percent(interval=0.1)
-
-            # Only start counting idle time after process has been active at least once
-            CPU_TRESHOLD = 0.1  # Define what is considered "active" CPU usage
-            if cpu_percent >= CPU_TRESHOLD:
-                has_been_active = True
-                idle_time = 0  # Reset idle counter
-            elif has_been_active and cpu_percent < CPU_TRESHOLD:
-                # Process was active before, now it's idle
-                idle_time += check_interval
-                if idle_time >= idle_threshold:
-                    print(f"DesignBuilder process has been idle for {idle_time:.1f}s - terminating...")
-                    process.terminate()
-                    # Wait for graceful shutdown
-                    _, alive = psutil.wait_procs([process], timeout=3)
-                    if alive:
-                        process.kill()
-                    break
-
-            time.sleep(check_interval)
-
-    except (psutil.NoSuchProcess, psutil.AccessDenied):
-        # Process already ended or access denied
-        pass
+    warnings.warn(
+        "db_batch.misc_os.kill_process_when_idle is deprecated, "
+        "use db_process.kill_when_idle",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return _kill_when_idle(
+        name,
+        idle_threshold=idle_threshold,
+        check_interval=check_interval,
+        startup_period=startup_period,
+    )
