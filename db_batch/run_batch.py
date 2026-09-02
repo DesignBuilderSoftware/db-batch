@@ -3,10 +3,11 @@ import threading
 import time
 from queue import Queue
 
+import psutil
+
 from db_process import (
     eplus_simulation,
     find_designbuilder,
-    kill_process,
     kill_when_idle,
     run,
     run_async,
@@ -78,6 +79,50 @@ def get_loc(analysis):
                 analysis, "eplus", "sbem"
             )
         )
+
+
+DB_PROCESS_NAME = "DesignBuilder.exe"
+
+
+def kill_all_designbuilder(timeout=15.0, check_interval=0.25):
+    """Terminate every DesignBuilder instance and wait until none is left.
+
+    ``db_process.kill_process()`` only kills a *single* process — whichever
+    one ``find_process()`` happens to return first. That is enough while the
+    invariant "at most one DesignBuilder" holds, but it cannot restore that
+    invariant once it has been broken: a model that died on a modal
+    "DesignBuilder is already running - only one instance is allowed" dialog
+    leaves an extra instance behind, one kill removes one of them, and every
+    later model stacks another dialog until the batch stops progressing.
+
+    Returns True if nothing is running by the time we give up.
+    """
+    deadline = time.monotonic() + timeout
+    while True:
+        procs = []
+        for proc in psutil.process_iter(["name"]):
+            try:
+                if proc.info["name"] == DB_PROCESS_NAME:
+                    procs.append(proc)
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+
+        if not procs:
+            return True
+
+        if time.monotonic() >= deadline:
+            print(
+                f"Could not terminate {len(procs)} DesignBuilder "
+                f"instance(s) within {timeout}s."
+            )
+            return False
+
+        for proc in procs:
+            try:
+                proc.kill()
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
+        psutil.wait_procs(procs, timeout=check_interval)
 
 
 def remove_files(paths):
@@ -292,7 +337,7 @@ def run_batch(  # noqa: C901
         Prevent DB from closing after executing command.
 
     """
-    kill_process()
+    kill_all_designbuilder()
 
     if not os.path.exists(models_root_or_file):
         raise NoDsbFileFound("Path '{}' does not exist.".format(models_root_or_file))
@@ -411,22 +456,54 @@ def run_batch(  # noqa: C901
 
         # run an actual DesignBuilder process (non-blocking for eplus)
         if analysis_type.lower() == "eplus":
+            # DesignBuilder permits a single instance, so never launch on top
+            # of a leftover one: the new process would die on a modal
+            # "already running" dialog instead of simulating. This also keeps
+            # find_process() unambiguous for the monitor below, which targets
+            # whichever DesignBuilder it sees first rather than a given pid.
+            kill_all_designbuilder()
+
             # For EnergyPlus, launch DesignBuilder non-blocking
             handle = run_async(path, chain, exe_path=exe)
 
-            # Monitor DesignBuilder and kill when idle
-            # This will terminate DesignBuilder when CPU is below 0.1% for 10+ seconds
-            # This function blocks until DB is killed or process ends
-            kill_when_idle(
-                idle_threshold=10,
-                check_interval=0.5,
-                startup_period=20,
+            # Monitor DesignBuilder and kill when idle: it terminates once
+            # CPU stays below 0.1% for 10+ seconds. Run it on a thread and
+            # bound the wait with the caller's per-model timeout - on its own
+            # kill_when_idle() has no overall cap, so a model that never
+            # registers CPU activity (sitting on a modal dialog, say) parks
+            # the whole batch on that one process indefinitely. The eplus
+            # path ignored `timeout` entirely before this.
+            monitor = threading.Thread(
+                target=kill_when_idle,
+                kwargs={
+                    "idle_threshold": 10,
+                    "check_interval": 0.5,
+                    "startup_period": 20,
+                },
+                daemon=True,
             )
+            monitor.start()
+            monitor.join(timeout)
 
-            # DesignBuilder has been killed by idle detector
+            expired = monitor.is_alive()
+            if expired:
+                print(f"Model '{model_name}' - Timeout expired!")
+                report_dct["expired"].append(model_name)
+                if report_file:
+                    with open(report_file, "a") as f:
+                        msg = f"File '{model_name}' - Timeout expired!"
+                        f.write(msg + "\n")
+
+            # kill_when_idle() returns without having killed anything in
+            # several paths - no process found, the process exited on its own,
+            # or it never registered as active - so it cannot be relied on to
+            # have left a clean slate for the next model. Sweeping here also
+            # releases the monitor thread when the timeout above expired.
+            kill_all_designbuilder()
+
             # Watcher thread is still running in background, collecting files
             # We don't wait for it - move to next simulation immediately
-            finished = True
+            finished = not expired
         else:
             # For other analysis types, use blocking approach
             result = run(path, chain, exe_path=exe, timeout=timeout)
@@ -446,7 +523,7 @@ def run_batch(  # noqa: C901
                 w_thread.stop()
 
             # Kill DesignBuilder after each simulation to ensure clean state
-            kill_process()
+            kill_all_designbuilder()
 
         if analysis_type.lower() == "sbem":
             # for sbem analysis, there cannot be any pending watcher thread
