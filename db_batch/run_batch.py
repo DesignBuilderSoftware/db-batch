@@ -25,6 +25,7 @@ from db_batch.misc_os import (
 )
 from db_batch.watchers import EplusWatcher, SbemWatcher
 
+WATCHER_JOIN_TIMEOUT = 60
 SBEM_VERSIONS = ["41e", "54a", "54b", "55h", "56a", "61e"]
 TIMEOUT = 600
 DB_DATA = os.path.join(os.getenv("LOCALAPPDATA"), "DesignBuilder")
@@ -401,6 +402,11 @@ def run_batch(  # noqa: C901
     # initialize a report dictionary
     report_dct = {"skipped": [], "expired": [], "failed": [], "successful": []}
 
+    # Watchers are joined explicitly at the end of the batch. Counting live
+    # threads process-wide instead would stall any caller that runs its own
+    # threads (a dashboard, a progress monitor, a test harness).
+    watcher_threads = []
+
     # initialize a report file if requested
     report_file = ""
     if write_report:
@@ -453,6 +459,7 @@ def run_batch(  # noqa: C901
         # output files based on analysis type
         w_thread = watcher(analysis_type)(*args)
         w_thread.start()
+        watcher_threads.append(w_thread)
 
         # run an actual DesignBuilder process (non-blocking for eplus)
         if analysis_type.lower() == "eplus":
@@ -534,11 +541,18 @@ def run_batch(  # noqa: C901
             w_thread.stop()
             time.sleep(3)
 
-    while threading.active_count() > 2:
-        # wait until all child threads finish
-        # when only main and collector threads are running
-        # program can be terminated
-        time.sleep(1)
+    # Wait for the watcher threads this batch started. The previous check -
+    # `while threading.active_count() > 2` - assumed the process contained
+    # nothing but this module's main and collector threads, so any caller
+    # holding a thread of its own left run_batch spinning here forever after
+    # the last model had finished.
+    for w_thread in watcher_threads:
+        w_thread.join(timeout=WATCHER_JOIN_TIMEOUT)
+        if w_thread.is_alive():
+            # never saw its .err reach a terminal state - stop it so the
+            # collector can drain and the batch can return
+            w_thread.stop()
+            w_thread.join(timeout=5)
 
     if write_report:
         finish_report(report_file, report_dct)
