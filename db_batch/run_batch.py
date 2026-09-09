@@ -4,16 +4,14 @@ import time
 from queue import Queue
 
 import psutil
-
 from db_process import (
+    ProcessChain,
     eplus_simulation,
     find_designbuilder,
     kill_when_idle,
     run,
     run_async,
     sbem_calculation,
-    ProcessChain,
-    Screen,
 )
 
 from db_batch.collector import Collector
@@ -113,8 +111,7 @@ def kill_all_designbuilder(timeout=15.0, check_interval=0.25):
 
         if time.monotonic() >= deadline:
             print(
-                f"Could not terminate {len(procs)} DesignBuilder "
-                f"instance(s) within {timeout}s."
+                f"Could not terminate {len(procs)} DesignBuilder instance(s) within {timeout}s."
             )
             return False
 
@@ -349,9 +346,7 @@ def run_batch(  # noqa: C901
 
         if not model_paths:
             # raise an error if there aren't any db models in specified folder
-            raise NoDsbFileFound(
-                "No .dsb model was found in '{}'.".format(models_root_or_file)
-            )
+            raise NoDsbFileFound("No .dsb model was found in '{}'.".format(models_root_or_file))
     else:
         model_paths = [models_root_or_file]
 
@@ -378,8 +373,9 @@ def run_batch(  # noqa: C901
     start_index = 1 if not start_index else start_index
     if start_index > len(model_paths):
         raise InvalidStartingIndex(
-            "Chosen start index '{}' is higher than actual "
-            "number of models: '{}'.".format(start_index, len(model_paths))
+            "Chosen start index '{}' is higher than actual number of models: '{}'.".format(
+                start_index, len(model_paths)
+            )
         )
 
     # create a queue which will be used to pass
@@ -419,9 +415,7 @@ def run_batch(  # noqa: C901
     if watch_files == "default":
         watch_files = pick_up_files(analysis_type)
 
-    watch_paths = [
-        os.path.join(db_data_dir, loc, file) for file in watch_files for loc in locs
-    ]
+    watch_paths = [os.path.join(db_data_dir, loc, file) for file in watch_files for loc in locs]
 
     # Build the process chain using db_process
     chain = build_process_chain(
@@ -471,7 +465,7 @@ def run_batch(  # noqa: C901
             kill_all_designbuilder()
 
             # For EnergyPlus, launch DesignBuilder non-blocking
-            handle = run_async(path, chain, exe_path=exe)
+            run_async(path, chain, exe_path=exe)
 
             # Monitor DesignBuilder and kill when idle: it terminates once
             # CPU stays below 0.1% for 10+ seconds. Run it on a thread and
