@@ -1,14 +1,11 @@
 repos:
   # Ruff for linting and formatting
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.11  # Use the latest version
+    rev: v0.16.6  # Use the latest version
     hooks:
-      # Run ruff check with import sorting (includes isort functionality)
-      - id: ruff
-        args: [--fix, --select, I]  # Focus on import sorting
-        name: ruff-imports
-      # Run the linter.
+      # Run the linter (import sorting is included in Ruff's default rule set).
       - id: ruff-check
+        args: [--fix]
         name: ruff-check
       # Run the formatter
       - id: ruff-format
