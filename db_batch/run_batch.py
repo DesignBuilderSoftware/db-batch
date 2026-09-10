@@ -33,11 +33,9 @@ TIMEOUT = 600
 # finished (and hung) by the time monitoring begins.
 IDLE_SETTINGS = {
     "eplus": {"idle_threshold": 10, "check_interval": 0.5, "startup_period": 20},
-    # SBEM hands the calculation to external engines (SBEM, BRUKLgen, EPCgen)
-    # during which DesignBuilder itself can sit at ~0% CPU, hence the wider
-    # idle window; the startup grace is shorter because an SBEM run can be
-    # over well within eplus' 20s.
-    "sbem": {"idle_threshold": 30, "check_interval": 0.5, "startup_period": 10},
+    # sbem gets the shorter startup grace because a run can be over well
+    # within eplus' 20s, leaving nothing for the monitor to detect.
+    "sbem": {"idle_threshold": 10, "check_interval": 0.5, "startup_period": 10},
 }
 DB_DATA = os.path.join(os.getenv("LOCALAPPDATA"), "DesignBuilder")
 JOB_SERVER_DIR = "C:/ProgramData/DesignBuilder/JobServer/Users/User"
