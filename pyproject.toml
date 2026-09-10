@@ -49,3 +49,12 @@ exclude = [
     "venv",
 ]
 line-length = 96
+
+[tool.pylint."messages control"]
+disable = [
+    "C0301", # line-too-long, line length is owned by ruff-format
+]
+
+[tool.pylint.design]
+max-args = 7
+max-positional-arguments = 7

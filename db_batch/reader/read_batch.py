@@ -1,3 +1,5 @@
+"""Example script: read SBEM results from a batch of models into a spreadsheet."""
+
 import shutil
 from pathlib import Path
 

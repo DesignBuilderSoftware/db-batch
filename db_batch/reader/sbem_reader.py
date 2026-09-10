@@ -125,6 +125,7 @@ class ModelEpcInpFile:
                     attr, "\n\t".join(obj.keys())
                 )
             )
+            return None
 
     def get_output_vals(self, par_name, child_name, attr_lst):
         """Return a dictionary {attr: val, ...} for a given object."""
@@ -132,7 +133,7 @@ class ModelEpcInpFile:
         attrs = {}
 
         if not obj:
-            return
+            return None
 
         for attr in attr_lst:
             val = self._get_attr(obj, attr)
@@ -155,6 +156,7 @@ class ModelEpcInpFile:
                     obj, "\n\t".join(parent_obj.keys())
                 )
             )
+            return None
 
     def _get_main_obj(self, obj_name):
         """Fetch main object content."""
@@ -194,6 +196,7 @@ class ModelEpcInpFile:
                     obj, "\n\t".join(self.main_objects)
                 )
             )
+            return None
 
     @staticmethod
     def process_line(line):
@@ -222,7 +225,7 @@ class ModelEpcInpFile:
             if obj == "BUILDING-DATA" and field == "ANALYSIS":
                 building = value
 
-            if obj == "BUILDING-DATA" or obj == "HVAC-SYSTEM-DATA":
+            if obj in ("BUILDING-DATA", "HVAC-SYSTEM-DATA"):
                 b_obj = f"{building} - {obj}"
 
             objects[b_obj][name][field] = value
@@ -257,8 +260,11 @@ class ModelEpcInpFile:
     def read_model_epc(self, path):
         """Open the .inp file and trigger processing."""
         try:
-            with open(path) as input_file:
+            # '.inp' files carry user-entered building names, so a stray
+            # non-UTF-8 byte must not abort the whole read.
+            with open(path, encoding="utf-8", errors="replace") as input_file:
                 return self.process_file(input_file)
 
         except OSError:
             print(f"Cannot open file: '{path}'.")
+            return None

@@ -1,3 +1,5 @@
+"""Filesystem helpers for locating, copying and cleaning up batch files."""
+
 import os
 import traceback
 import warnings

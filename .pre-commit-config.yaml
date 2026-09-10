@@ -12,14 +12,15 @@ repos:
         name: ruff-format
 
   # Pylint for additional static analysis
-#  - repo: local
-#    hooks:
-#      - id: pylint
-#        name: pylint
-#        entry: uv run pylint
-#        language: system
-#        types: [python]
-#        args:
-#          [
-#            db_batch
-#          ]
+  - repo: local
+    hooks:
+      - id: pylint
+        name: pylint
+        entry: uv run pylint
+        language: system
+        types: [python]
+        pass_filenames: false
+        args:
+          [
+            db_batch
+          ]
