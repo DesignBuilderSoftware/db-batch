@@ -1,3 +1,5 @@
+"""Run a batch of DesignBuilder models and collect their output files."""
+
 import os
 import threading
 import time
@@ -80,15 +82,12 @@ def get_loc(analysis):
     if analysis.lower() == "eplus":
         return ["energyplus"]
 
-    elif analysis.lower() == "sbem":
+    if analysis.lower() == "sbem":
         return SBEM_VERSIONS
 
-    else:
-        raise IncorrectAnalysisType(
-            "Incorrect analysis type: '{}'\nThis can be: {}, {}.".format(
-                analysis, "eplus", "sbem"
-            )
-        )
+    raise IncorrectAnalysisType(
+        f"Incorrect analysis type: '{analysis}'\nThis can be: 'eplus', 'sbem'."
+    )
 
 
 DB_PROCESS_NAME = "DesignBuilder.exe"
@@ -202,15 +201,15 @@ def watcher(analysis):
     types = {"sbem": SbemWatcher, "eplus": EplusWatcher, "dsm": None}
 
     try:
-        watcher = types[analysis]
+        watcher_cls = types[analysis]
 
-    except KeyError:
-        raise KeyError(f"Incorrect analysis type: '{analysis}'.")
+    except KeyError as exc:
+        raise KeyError(f"Incorrect analysis type: '{analysis}'.") from exc
 
     if analysis == "dsm":
         raise NotImplementedError("DSM not supported!")
 
-    return watcher
+    return watcher_cls
 
 
 def pick_up_files(analysis_type):
@@ -226,8 +225,8 @@ def pick_up_files(analysis_type):
     try:
         files = data[analysis_type]
 
-    except KeyError:
-        raise KeyError(f"Incorrect analysis type: '{analysis_type}'.")
+    except KeyError as exc:
+        raise KeyError(f"Incorrect analysis type: '{analysis_type}'.") from exc
 
     if analysis_type == "dsm":
         raise NotImplementedError("DSM not supported!")
@@ -241,7 +240,7 @@ def init_report(analysis_type, outputs_root_dir, num_models):
     name = f"summary_{analysis_type}_{str_tme}.txt"
     report_file = os.path.join(outputs_root_dir, name)
 
-    with open(report_file, "w") as f:
+    with open(report_file, "w", encoding="utf-8") as f:
         f.write(f"Running '{analysis_type}' analysis.\n\tNumber of files: '{num_models}'.\n")
 
     return report_file
@@ -249,17 +248,18 @@ def init_report(analysis_type, outputs_root_dir, num_models):
 
 def finish_report(report_file, report_dct):
     """Summarize batch run analysis."""
+    separator = "*" * 50
     lines = [
-        "\n{}".format("*" * 50),
+        f"\n{separator}",
         "\nSummary:",
-        "\n\tSkipped: '{}' models.".format(len(report_dct["skipped"])),
-        "\n\tTimeout expired: '{}' models.".format(len(report_dct["expired"])),
-        "\n\tFailed: '{}' models.".format(len(report_dct["failed"])),
-        "\n\tSuccessful: '{}' models.".format(len(report_dct["successful"])),
-        "\n{}".format("*" * 50),
+        f"\n\tSkipped: '{len(report_dct['skipped'])}' models.",
+        f"\n\tTimeout expired: '{len(report_dct['expired'])}' models.",
+        f"\n\tFailed: '{len(report_dct['failed'])}' models.",
+        f"\n\tSuccessful: '{len(report_dct['successful'])}' models.",
+        f"\n{separator}",
     ]
     print("".join(lines))
-    with open(report_file, "a") as f:
+    with open(report_file, "a", encoding="utf-8") as f:
         f.writelines(lines)
 
 
@@ -286,6 +286,10 @@ def run_batch(
     change_attributes=None,
     no_close=False,
 ):
+    # The signature mirrors the CLI options in main.py one-for-one, and the
+    # body is a single sequential batch loop; splitting either only moves the
+    # size around.
+    # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
     """
     This is a main function to run DesignBuilder files as a 'batch'.
 
@@ -490,7 +494,7 @@ def run_batch(
             print(f"Model '{model_name}' - Timeout expired!")
             report_dct["expired"].append(model_name)
             if report_file:
-                with open(report_file, "a") as f:
+                with open(report_file, "a", encoding="utf-8") as f:
                     msg = f"File '{model_name}' - Timeout expired!"
                     f.write(msg + "\n")
 
