@@ -142,7 +142,7 @@ def remove_files(paths):
         except FileNotFoundError:
             pass
         except PermissionError:
-            print("Cannot remove file: '{}'\n\tAccess denied!".format(path))
+            print(f"Cannot remove file: '{path}'\n\tAccess denied!")
 
 
 def build_process_chain(
@@ -184,7 +184,7 @@ def build_process_chain(
             chain.no_close()
         chain.run()
     else:
-        raise KeyError("Incorrect analysis type: '{}'.".format(analysis))
+        raise KeyError(f"Incorrect analysis type: '{analysis}'.")
 
     cmnd = chain.to_string()
     print(f"Running batch using '{cmnd}' command args. ")
@@ -205,10 +205,10 @@ def watcher(analysis):
         watcher = types[analysis]
 
     except KeyError:
-        raise KeyError("Incorrect analysis type: '{}'.".format(analysis))
+        raise KeyError(f"Incorrect analysis type: '{analysis}'.")
 
     if analysis == "dsm":
-        raise Exception("DSM not supported!")
+        raise NotImplementedError("DSM not supported!")
 
     return watcher
 
@@ -227,10 +227,10 @@ def pick_up_files(analysis_type):
         files = data[analysis_type]
 
     except KeyError:
-        raise KeyError("Incorrect analysis type: '{}'.".format(analysis_type))
+        raise KeyError(f"Incorrect analysis type: '{analysis_type}'.")
 
     if analysis_type == "dsm":
-        raise Exception("DSM not supported!")
+        raise NotImplementedError("DSM not supported!")
 
     return files
 
@@ -238,15 +238,11 @@ def pick_up_files(analysis_type):
 def init_report(analysis_type, outputs_root_dir, num_models):
     """Initialize output report file."""
     str_tme = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime(time.time()))
-    name = "summary_{}_{}.txt".format(analysis_type, str_tme)
+    name = f"summary_{analysis_type}_{str_tme}.txt"
     report_file = os.path.join(outputs_root_dir, name)
 
     with open(report_file, "w") as f:
-        f.write(
-            "Running '{}' analysis.\n\tNumber of files: '{}'.\n".format(
-                analysis_type, num_models
-            )
-        )
+        f.write(f"Running '{analysis_type}' analysis.\n\tNumber of files: '{num_models}'.\n")
 
     return report_file
 
@@ -267,7 +263,7 @@ def finish_report(report_file, report_dct):
         f.writelines(lines)
 
 
-def run_batch(  # noqa: C901
+def run_batch(
     models_root_or_file,
     outputs_root_dir,
     *,
@@ -349,7 +345,7 @@ def run_batch(  # noqa: C901
     kill_all_designbuilder()
 
     if not os.path.exists(models_root_or_file):
-        raise NoDsbFileFound("Path '{}' does not exist.".format(models_root_or_file))
+        raise NoDsbFileFound(f"Path '{models_root_or_file}' does not exist.")
 
     if os.path.isdir(models_root_or_file):
         # get all the models which will be run in batch
@@ -357,7 +353,7 @@ def run_batch(  # noqa: C901
 
         if not model_paths:
             # raise an error if there aren't any db models in specified folder
-            raise NoDsbFileFound("No .dsb model was found in '{}'.".format(models_root_or_file))
+            raise NoDsbFileFound(f"No .dsb model was found in '{models_root_or_file}'.")
     else:
         model_paths = [models_root_or_file]
 
@@ -384,9 +380,7 @@ def run_batch(  # noqa: C901
     start_index = 1 if not start_index else start_index
     if start_index > len(model_paths):
         raise InvalidStartingIndex(
-            "Chosen start index '{}' is higher than actual number of models: '{}'.".format(
-                start_index, len(model_paths)
-            )
+            f"Chosen start index '{start_index}' is higher than actual number of models: '{len(model_paths)}'."
         )
 
     # create a queue which will be used to pass
@@ -448,7 +442,7 @@ def run_batch(  # noqa: C901
         if i < start_index or i > (end_index if end_index else 9999999):
             # non-default starting index has been requested
             # skip until the condition is met
-            print("Skipping {}/{} - '{}'".format(i, len(model_paths), model_name))
+            print(f"Skipping {i}/{len(model_paths)} - '{model_name}'")
             report_dct["skipped"].append(model_name)
             continue
 
@@ -458,7 +452,7 @@ def run_batch(  # noqa: C901
             # job server is not applicable for sbem calculation
             args = args[:3]
 
-        print("Running {}/{} - '{}'".format(i, len(model_paths), model_name))
+        print(f"Running {i}/{len(model_paths)} - '{model_name}'")
 
         # run a watcher thread which is responsible for watching
         # output files based on analysis type

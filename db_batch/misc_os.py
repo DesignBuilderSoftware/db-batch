@@ -4,9 +4,9 @@ import warnings
 from pathlib import Path
 from shutil import copyfile
 
+from db_process import find_process as _find_process
 from db_process import kill_process as _kill_process
 from db_process import kill_when_idle as _kill_when_idle
-from db_process import find_process as _find_process
 
 
 def list_dirs(pth):
@@ -25,7 +25,7 @@ def list_files(root, depth=1, ext="dsb"):
     files_lst = []
 
     if not os.path.isdir(root):
-        raise FileNotFoundError("Root folder '{}' does not exist!".format(root))
+        raise FileNotFoundError(f"Root folder '{root}' does not exist!")
 
     _walk(root, files_lst, depth=depth, ext=ext)
     return files_lst
@@ -42,9 +42,8 @@ def _walk(root, files, depth=1, ext=None):
     for name in os.listdir(root):
         pth = os.path.join(root, name)
         if os.path.isfile(pth):
-            if ext:
-                if pth.lower().endswith(ext):
-                    files.append(pth)
+            if ext and pth.lower().endswith(ext):
+                files.append(pth)
         else:
             dirs.append(pth)
     if depth > 1:
@@ -134,9 +133,9 @@ def copy_file(
 
     if model_name and include_model_name:
         if include_orig_name:
-            out = "{} - {}{}".format(model_name, orig_name, ext)
+            out = f"{model_name} - {orig_name}{ext}"
         else:
-            out = "{}{}".format(model_name, ext)
+            out = f"{model_name}{ext}"
 
     if make_subdirs and model_name:
         create_dir(os.path.join(dest, model_name))
@@ -146,12 +145,8 @@ def copy_file(
 
     try:
         copyfile(src, dest)
-    except IOError:
-        print(
-            "Cannot copy file '{}' to '{}'.\n{}".format(
-                src, dest, traceback.format_exc()
-            )
-        )
+    except OSError:
+        print(f"Cannot copy file '{src}' to '{dest}'.\n{traceback.format_exc()}")
 
 
 # ---------------------------------------------------------------------------
@@ -187,7 +182,7 @@ def on_terminate(process):
         DeprecationWarning,
         stacklevel=2,
     )
-    print("process {} terminated with exit code {}".format(process, process.returncode))
+    print(f"process {process} terminated with exit code {process.returncode}")
 
 
 def kill_process(name="DesignBuilder.exe"):
@@ -216,8 +211,7 @@ def kill_process_when_idle(
         Use ``db_process.kill_when_idle`` instead.
     """
     warnings.warn(
-        "db_batch.misc_os.kill_process_when_idle is deprecated, "
-        "use db_process.kill_when_idle",
+        "db_batch.misc_os.kill_process_when_idle is deprecated, use db_process.kill_when_idle",
         DeprecationWarning,
         stacklevel=2,
     )

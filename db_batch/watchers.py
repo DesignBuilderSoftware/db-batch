@@ -102,9 +102,7 @@ class EplusWatcher(Watcher):
 
     """
 
-    def __init__(
-        self, model_name, paths, queue, job_server_dir, report_file, report_dct
-    ):
+    def __init__(self, model_name, paths, queue, job_server_dir, report_file, report_dct):
         super().__init__(model_name, paths, queue)
         self.job_server_dir = job_server_dir
         self.report_file = report_file
@@ -120,7 +118,7 @@ class EplusWatcher(Watcher):
         if new_dir:
             # the simulation runs using 'Simulation Manager'
             # update paths for requested output files
-            files_dct = {k: os.path.join(new_dir, k) for k in files_dct.keys()}
+            files_dct = {k: os.path.join(new_dir, k) for k in files_dct}
 
         # this is a main check to see if simulation finished successfully
         success = self.read_err_file(files_dct["eplusout.err"])
@@ -136,9 +134,7 @@ class EplusWatcher(Watcher):
                     msg = f"Model '{self.model_name}' - EnergyPlus failed!"
                     f.write(msg + "\n")
 
-            files = list(
-                filter(lambda x: ("eplusout.err" in x or "in.idf" in x), files)
-            )
+            files = list(filter(lambda x: "eplusout.err" in x or "in.idf" in x, files))
 
         else:
             self.report_dct["successful"].append(self.model_name)
