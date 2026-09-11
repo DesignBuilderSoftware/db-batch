@@ -47,7 +47,7 @@ wheels = [
 [[package]]
 name = "db-batch"
 version = "0.2.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "db-process" },
     { name = "pandas" },
