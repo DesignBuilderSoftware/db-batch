@@ -64,7 +64,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "db-process", git = "https://github.com/DesignBuilderSoftware/db-process.git?rev=51c7afd64a39744c9a5e19e506e31965e001d46b" },
+    { name = "db-process", git = "https://github.com/DesignBuilderSoftware/db-process.git?rev=33c6ea2af3cacaf211e4934b1562f16950142f72" },
     { name = "pandas", specifier = ">=2.3.3,<3" },
     { name = "psutil", specifier = ">=7.2.2" },
 ]
@@ -79,8 +79,8 @@ dev = [
 
 [[package]]
 name = "db-process"
-version = "0.2.0"
-source = { git = "https://github.com/DesignBuilderSoftware/db-process.git?rev=51c7afd64a39744c9a5e19e506e31965e001d46b#51c7afd64a39744c9a5e19e506e31965e001d46b" }
+version = "0.3.1"
+source = { git = "https://github.com/DesignBuilderSoftware/db-process.git?rev=33c6ea2af3cacaf211e4934b1562f16950142f72#33c6ea2af3cacaf211e4934b1562f16950142f72" }
 dependencies = [
     { name = "psutil" },
 ]
