@@ -2,8 +2,8 @@ from db_batch.run_batch import WATCH_EPLUS, run_batch
 
 if __name__ == "__main__":
     # CHANGE THIS TO A VALID PATH!
-    root = r"C:\Users\vojtechp1\Desktop\Batch Testing\Batch models\Test cases DB - version 6.2.0.056"
-    out = r"C:\Users\vojtechp1\Desktop\Batch Testing\Results\620056"
+    root = r"C:\path\to\test\models"
+    out = r"C:\path\to\results"
 
     attributes = [
         ("DailyOutput", 0),
