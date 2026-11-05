@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 
 dependencies = [
-    "db-process @ git+https://github.com/DesignBuilderSoftware/db-process.git@33c6ea2af3cacaf211e4934b1562f16950142f72",
+    "db-process>=0.3.1",
     "pandas>=2.3.3,<3",
     "psutil>=7.2.2",
 ]
