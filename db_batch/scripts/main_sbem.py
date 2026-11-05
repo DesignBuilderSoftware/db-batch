@@ -3,7 +3,7 @@ import os
 from db_batch.run_batch import run_batch
 
 # CHANGE THIS TO A VALID PATH!
-root = r"C:\Users\vojtechp1\Desktop\New test cases\SBEM"
+root = r"C:\path\to\sbem\models"
 outputs = os.path.join(root, "out")
 
 if __name__ == "__main__":

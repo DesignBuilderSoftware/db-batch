@@ -1,19 +1,18 @@
+"""Run a batch of DesignBuilder models and collect their output files."""
+
 import os
 import threading
 import time
 from queue import Queue
 
 import psutil
-
 from db_process import (
+    ProcessChain,
     eplus_simulation,
     find_designbuilder,
     kill_when_idle,
-    run,
     run_async,
     sbem_calculation,
-    ProcessChain,
-    Screen,
 )
 
 from db_batch.collector import Collector
@@ -28,6 +27,18 @@ from db_batch.watchers import EplusWatcher, SbemWatcher
 WATCHER_JOIN_TIMEOUT = 60
 SBEM_VERSIONS = ["41e", "54a", "54b", "55h", "56a", "61e"]
 TIMEOUT = 600
+
+# kill_when_idle() settings per analysis type. Idle detection only arms after
+# 'startup_period' and only once the process has registered some CPU activity,
+# so both values are a trade-off: too short an idle window kills a model
+# mid-calculation, too long a startup grace misses a model that is already
+# finished (and hung) by the time monitoring begins.
+IDLE_SETTINGS = {
+    "eplus": {"idle_threshold": 10, "check_interval": 0.5, "startup_period": 20},
+    # sbem gets the shorter startup grace because a run can be over well
+    # within eplus' 20s, leaving nothing for the monitor to detect.
+    "sbem": {"idle_threshold": 10, "check_interval": 0.5, "startup_period": 10},
+}
 DB_DATA = os.path.join(os.getenv("LOCALAPPDATA"), "DesignBuilder")
 JOB_SERVER_DIR = "C:/ProgramData/DesignBuilder/JobServer/Users/User"
 
@@ -71,15 +82,12 @@ def get_loc(analysis):
     if analysis.lower() == "eplus":
         return ["energyplus"]
 
-    elif analysis.lower() == "sbem":
+    if analysis.lower() == "sbem":
         return SBEM_VERSIONS
 
-    else:
-        raise IncorrectAnalysisType(
-            "Incorrect analysis type: '{}'\nThis can be: {}, {}.".format(
-                analysis, "eplus", "sbem"
-            )
-        )
+    raise IncorrectAnalysisType(
+        f"Incorrect analysis type: '{analysis}'\nThis can be: 'eplus', 'sbem'."
+    )
 
 
 DB_PROCESS_NAME = "DesignBuilder.exe"
@@ -113,8 +121,7 @@ def kill_all_designbuilder(timeout=15.0, check_interval=0.25):
 
         if time.monotonic() >= deadline:
             print(
-                f"Could not terminate {len(procs)} DesignBuilder "
-                f"instance(s) within {timeout}s."
+                f"Could not terminate {len(procs)} DesignBuilder instance(s) within {timeout}s."
             )
             return False
 
@@ -134,7 +141,7 @@ def remove_files(paths):
         except FileNotFoundError:
             pass
         except PermissionError:
-            print("Cannot remove file: '{}'\n\tAccess denied!".format(path))
+            print(f"Cannot remove file: '{path}'\n\tAccess denied!")
 
 
 def build_process_chain(
@@ -176,7 +183,7 @@ def build_process_chain(
             chain.no_close()
         chain.run()
     else:
-        raise KeyError("Incorrect analysis type: '{}'.".format(analysis))
+        raise KeyError(f"Incorrect analysis type: '{analysis}'.")
 
     cmnd = chain.to_string()
     print(f"Running batch using '{cmnd}' command args. ")
@@ -194,15 +201,15 @@ def watcher(analysis):
     types = {"sbem": SbemWatcher, "eplus": EplusWatcher, "dsm": None}
 
     try:
-        watcher = types[analysis]
+        watcher_cls = types[analysis]
 
-    except KeyError:
-        raise KeyError("Incorrect analysis type: '{}'.".format(analysis))
+    except KeyError as exc:
+        raise KeyError(f"Incorrect analysis type: '{analysis}'.") from exc
 
     if analysis == "dsm":
-        raise Exception("DSM not supported!")
+        raise NotImplementedError("DSM not supported!")
 
-    return watcher
+    return watcher_cls
 
 
 def pick_up_files(analysis_type):
@@ -218,11 +225,11 @@ def pick_up_files(analysis_type):
     try:
         files = data[analysis_type]
 
-    except KeyError:
-        raise KeyError("Incorrect analysis type: '{}'.".format(analysis_type))
+    except KeyError as exc:
+        raise KeyError(f"Incorrect analysis type: '{analysis_type}'.") from exc
 
     if analysis_type == "dsm":
-        raise Exception("DSM not supported!")
+        raise NotImplementedError("DSM not supported!")
 
     return files
 
@@ -230,36 +237,33 @@ def pick_up_files(analysis_type):
 def init_report(analysis_type, outputs_root_dir, num_models):
     """Initialize output report file."""
     str_tme = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime(time.time()))
-    name = "summary_{}_{}.txt".format(analysis_type, str_tme)
+    name = f"summary_{analysis_type}_{str_tme}.txt"
     report_file = os.path.join(outputs_root_dir, name)
 
-    with open(report_file, "w") as f:
-        f.write(
-            "Running '{}' analysis.\n\tNumber of files: '{}'.\n".format(
-                analysis_type, num_models
-            )
-        )
+    with open(report_file, "w", encoding="utf-8") as f:
+        f.write(f"Running '{analysis_type}' analysis.\n\tNumber of files: '{num_models}'.\n")
 
     return report_file
 
 
 def finish_report(report_file, report_dct):
     """Summarize batch run analysis."""
+    separator = "*" * 50
     lines = [
-        "\n{}".format("*" * 50),
+        f"\n{separator}",
         "\nSummary:",
-        "\n\tSkipped: '{}' models.".format(len(report_dct["skipped"])),
-        "\n\tTimeout expired: '{}' models.".format(len(report_dct["expired"])),
-        "\n\tFailed: '{}' models.".format(len(report_dct["failed"])),
-        "\n\tSuccessful: '{}' models.".format(len(report_dct["successful"])),
-        "\n{}".format("*" * 50),
+        f"\n\tSkipped: '{len(report_dct['skipped'])}' models.",
+        f"\n\tTimeout expired: '{len(report_dct['expired'])}' models.",
+        f"\n\tFailed: '{len(report_dct['failed'])}' models.",
+        f"\n\tSuccessful: '{len(report_dct['successful'])}' models.",
+        f"\n{separator}",
     ]
     print("".join(lines))
-    with open(report_file, "a") as f:
+    with open(report_file, "a", encoding="utf-8") as f:
         f.writelines(lines)
 
 
-def run_batch(  # noqa: C901
+def run_batch(
     models_root_or_file,
     outputs_root_dir,
     *,
@@ -282,6 +286,10 @@ def run_batch(  # noqa: C901
     change_attributes=None,
     no_close=False,
 ):
+    # The signature mirrors the CLI options in main.py one-for-one, and the
+    # body is a single sequential batch loop; splitting either only moves the
+    # size around.
+    # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
     """
     This is a main function to run DesignBuilder files as a 'batch'.
 
@@ -341,7 +349,7 @@ def run_batch(  # noqa: C901
     kill_all_designbuilder()
 
     if not os.path.exists(models_root_or_file):
-        raise NoDsbFileFound("Path '{}' does not exist.".format(models_root_or_file))
+        raise NoDsbFileFound(f"Path '{models_root_or_file}' does not exist.")
 
     if os.path.isdir(models_root_or_file):
         # get all the models which will be run in batch
@@ -349,9 +357,7 @@ def run_batch(  # noqa: C901
 
         if not model_paths:
             # raise an error if there aren't any db models in specified folder
-            raise NoDsbFileFound(
-                "No .dsb model was found in '{}'.".format(models_root_or_file)
-            )
+            raise NoDsbFileFound(f"No .dsb model was found in '{models_root_or_file}'.")
     else:
         model_paths = [models_root_or_file]
 
@@ -378,8 +384,7 @@ def run_batch(  # noqa: C901
     start_index = 1 if not start_index else start_index
     if start_index > len(model_paths):
         raise InvalidStartingIndex(
-            "Chosen start index '{}' is higher than actual "
-            "number of models: '{}'.".format(start_index, len(model_paths))
+            f"Chosen start index '{start_index}' is higher than actual number of models: '{len(model_paths)}'."
         )
 
     # create a queue which will be used to pass
@@ -419,9 +424,7 @@ def run_batch(  # noqa: C901
     if watch_files == "default":
         watch_files = pick_up_files(analysis_type)
 
-    watch_paths = [
-        os.path.join(db_data_dir, loc, file) for file in watch_files for loc in locs
-    ]
+    watch_paths = [os.path.join(db_data_dir, loc, file) for file in watch_files for loc in locs]
 
     # Build the process chain using db_process
     chain = build_process_chain(
@@ -443,7 +446,7 @@ def run_batch(  # noqa: C901
         if i < start_index or i > (end_index if end_index else 9999999):
             # non-default starting index has been requested
             # skip until the condition is met
-            print("Skipping {}/{} - '{}'".format(i, len(model_paths), model_name))
+            print(f"Skipping {i}/{len(model_paths)} - '{model_name}'")
             report_dct["skipped"].append(model_name)
             continue
 
@@ -453,7 +456,7 @@ def run_batch(  # noqa: C901
             # job server is not applicable for sbem calculation
             args = args[:3]
 
-        print("Running {}/{} - '{}'".format(i, len(model_paths), model_name))
+        print(f"Running {i}/{len(model_paths)} - '{model_name}'")
 
         # run a watcher thread which is responsible for watching
         # output files based on analysis type
@@ -461,82 +464,53 @@ def run_batch(  # noqa: C901
         w_thread.start()
         watcher_threads.append(w_thread)
 
-        # run an actual DesignBuilder process (non-blocking for eplus)
-        if analysis_type.lower() == "eplus":
-            # DesignBuilder permits a single instance, so never launch on top
-            # of a leftover one: the new process would die on a modal
-            # "already running" dialog instead of simulating. This also keeps
-            # find_process() unambiguous for the monitor below, which targets
-            # whichever DesignBuilder it sees first rather than a given pid.
-            kill_all_designbuilder()
+        # DesignBuilder permits a single instance, so never launch on top
+        # of a leftover one: the new process would die on a modal
+        # "already running" dialog instead of simulating. This also keeps
+        # find_process() unambiguous for the monitor below, which targets
+        # whichever DesignBuilder it sees first rather than a given pid.
+        kill_all_designbuilder()
 
-            # For EnergyPlus, launch DesignBuilder non-blocking
-            handle = run_async(path, chain, exe_path=exe)
+        run_async(path, chain, exe_path=exe)
 
-            # Monitor DesignBuilder and kill when idle: it terminates once
-            # CPU stays below 0.1% for 10+ seconds. Run it on a thread and
-            # bound the wait with the caller's per-model timeout - on its own
-            # kill_when_idle() has no overall cap, so a model that never
-            # registers CPU activity (sitting on a modal dialog, say) parks
-            # the whole batch on that one process indefinitely. The eplus
-            # path ignored `timeout` entirely before this.
-            monitor = threading.Thread(
-                target=kill_when_idle,
-                kwargs={
-                    "idle_threshold": 10,
-                    "check_interval": 0.5,
-                    "startup_period": 20,
-                },
-                daemon=True,
-            )
-            monitor.start()
-            monitor.join(timeout)
+        # Monitor DesignBuilder and kill it once its CPU usage drops: neither
+        # analysis type reliably closes the app when the calculation ends, so
+        # waiting for the process to exit means waiting out the whole
+        # `timeout` on every model. Run the monitor on a thread and bound the
+        # wait with the caller's per-model timeout - on its own
+        # kill_when_idle() has no overall cap, so a model that never
+        # registers CPU activity (sitting on a modal dialog, say) parks
+        # the whole batch on that one process indefinitely.
+        monitor = threading.Thread(
+            target=kill_when_idle,
+            kwargs=IDLE_SETTINGS[analysis_type.lower()],
+            daemon=True,
+        )
+        monitor.start()
+        monitor.join(timeout)
 
-            expired = monitor.is_alive()
-            if expired:
-                print(f"Model '{model_name}' - Timeout expired!")
-                report_dct["expired"].append(model_name)
-                if report_file:
-                    with open(report_file, "a") as f:
-                        msg = f"File '{model_name}' - Timeout expired!"
-                        f.write(msg + "\n")
+        expired = monitor.is_alive()
+        if expired:
+            print(f"Model '{model_name}' - Timeout expired!")
+            report_dct["expired"].append(model_name)
+            if report_file:
+                with open(report_file, "a", encoding="utf-8") as f:
+                    msg = f"File '{model_name}' - Timeout expired!"
+                    f.write(msg + "\n")
 
-            # kill_when_idle() returns without having killed anything in
-            # several paths - no process found, the process exited on its own,
-            # or it never registered as active - so it cannot be relied on to
-            # have left a clean slate for the next model. Sweeping here also
-            # releases the monitor thread when the timeout above expired.
-            kill_all_designbuilder()
-
-            # Watcher thread is still running in background, collecting files
-            # We don't wait for it - move to next simulation immediately
-            finished = not expired
-        else:
-            # For other analysis types, use blocking approach
-            result = run(path, chain, exe_path=exe, timeout=timeout)
-            finished = result.success and not result.timed_out
-
-            if result.timed_out:
-                print(f"Model '{path}' - Timeout expired!")
-
-            if not finished:
-                # kill the thread as the model timeout expired
-                report_dct["expired"].append(model_name)
-                if report_file:
-                    with open(report_file, "a") as f:
-                        msg = "File '{}' - Timeout expired!".format(model_name)
-                        f.write(msg + "\n")
-
-                w_thread.stop()
-
-            # Kill DesignBuilder after each simulation to ensure clean state
-            kill_all_designbuilder()
+        # kill_when_idle() returns without having killed anything in
+        # several paths - no process found, the process exited on its own,
+        # or it never registered as active - so it cannot be relied on to
+        # have left a clean slate for the next model. Sweeping here also
+        # releases the monitor thread when the timeout above expired.
+        kill_all_designbuilder()
 
         if analysis_type.lower() == "sbem":
-            # for sbem analysis, there cannot be any pending watcher thread
-            # as all the work must be already finished when the parent process ends
-            # some time needs to be given to copy outputs
-            if finished:
+            # sbem outputs carry no completion status the watcher could read
+            # (unlike eplus' '.err'), so it is stopped here - DesignBuilder is
+            # gone by now and whatever it produced is already on disk. Some
+            # time needs to be given to copy outputs.
+            if not expired:
                 report_dct["successful"].append(model_name)
             w_thread.stop()
             time.sleep(3)

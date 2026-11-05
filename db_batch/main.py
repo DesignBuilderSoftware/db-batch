@@ -1,3 +1,5 @@
+"""Command line entry point for running a batch of DesignBuilder files."""
+
 import argparse
 import os
 
@@ -13,8 +15,7 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument(
     "modelsDirOrFile",
-    help="directory containing models to be run (may be nested),"
-    " alternatively a single file",
+    help="directory containing models to be run (may be nested), alternatively a single file",
 )
 parser.add_argument("outputsDir", help="directory where results will be stored")
 parser.add_argument(
@@ -54,9 +55,7 @@ parser.add_argument(
 parser.add_argument(
     "--startIndex", type=int, help="starting index of the batch run (default: 1)"
 )
-parser.add_argument(
-    "--endIndex", type=int, help="last index of the batch run (default: -1)"
-)
+parser.add_argument("--endIndex", type=int, help="last index of the batch run (default: -1)")
 parser.add_argument(
     "--nSubDirs",
     type=int,
@@ -93,9 +92,7 @@ parser.add_argument(
 parser.add_argument(
     "--useSimManager", action="store_true", help="force using 'Simulation Manager'"
 )
-parser.add_argument(
-    "--report", action="store_true", help="write a simple batch summary report"
-)
+parser.add_argument("--report", action="store_true", help="write a simple batch summary report")
 parser.add_argument(
     "--changeAttr",
     action="append",
@@ -104,7 +101,9 @@ parser.add_argument(
     help="update a model attribute: attribute name value",
 )
 
-if __name__ == "__main__":
+
+def main():
+    """Parse command line arguments and run the batch."""
     args = parser.parse_args()
     kwargs = {
         "models_dirs_depth": args.nSubDirs,
@@ -126,10 +125,13 @@ if __name__ == "__main__":
         "no_close": args.noClose,
     }
     str_args = (
-        f"\tmodels dir of file: {args.modelsDirOrFile}"
-        f"\n\toutputs dir: {args.outputsDir}\n"
+        f"\tmodels dir of file: {args.modelsDirOrFile}\n\toutputs dir: {args.outputsDir}\n"
     )
     for k, v in kwargs.items():
         str_args += f"\t{k} : {v}\n"
     print(f"Running batch with following arguments:\n{str_args}")
     run_batch(args.modelsDirOrFile, args.outputsDir, **kwargs)
+
+
+if __name__ == "__main__":
+    main()

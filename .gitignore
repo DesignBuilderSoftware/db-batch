@@ -5,9 +5,3 @@ venv
 .venv
 build
 *.egg-info
-*.spec
-build.bat
-/db_batch/scripts/
-
-# direnv cache
-.direnv/

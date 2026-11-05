@@ -1,0 +1,14 @@
+name: Release
+
+on:
+  push:
+    branches: [master]
+    paths: ["pyproject.toml"]
+
+jobs:
+  release:
+    permissions:
+      contents: write
+    uses: DesignBuilderSoftware/db-github-workflows/.github/workflows/release.yml@v1
+    with:
+      version-file: pyproject.toml
