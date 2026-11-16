@@ -3,7 +3,7 @@ name = "db-batch"
 version = "0.3.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 
 dependencies = [
     "db-process>=0.3.1",
@@ -17,7 +17,7 @@ run_db_batch = "db_batch.main:main"
 [dependency-groups]
 dev = [
     "pre-commit>=4.6.2",
-    "pylint>=3.3.9,<4",
+    "pylint>=4.0.9,<5",
     "pytest>=9.1.1",
     "ruff>=0.16.6",
 ]

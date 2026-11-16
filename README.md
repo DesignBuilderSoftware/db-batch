@@ -12,7 +12,7 @@ you'd started it by hand.
 
 - Windows
 - A licensed DesignBuilder installation
-- Python >=3.10
+- Python >=3.11
 
 ## Installation
 
